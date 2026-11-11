@@ -88,6 +88,30 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.scroll {
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 pre {
   margin: 0;
   padding: 0.75rem;

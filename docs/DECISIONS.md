@@ -64,12 +64,12 @@ All incident data in this repository is synthetic and labelled as such.
 | Build machine meets Gemini Nano system requirements | verified (system level) |
 | Prompt API reports the model available in the user's Chrome | verified 2026-11-11 |
 | Vite scaffold builds, lints, tests pass | verified |
-| Deterministic verification (schema, missing fields, number grounding) | verified by unit tests |
+| Deterministic verification (schema, cited events, quoted times) | verified by unit tests |
 | App Check debug token cannot reach the production bundle | verified |
-| Proof-of-concept page renders and reads Prompt API availability | verified in the Claude desktop browser only |
-| On-device inference returns a structured record from photo + note | unverified |
-| Same, with the network disabled | unverified |
-| Output quality on five real experiment photos | unverified |
+| Proof-of-concept page renders and reads Prompt API availability | verified |
+| On-device inference returns an incident proposal from the GS-03 events | verified 2026-11-11 |
+| Same, with the network disabled | verified in part: page reported offline and `on_device`; Network tab not captured |
+| Output quality over five runs on the GS-03 events | unverified: 2 of 5 runs recorded, and they disagree |
 | Firebase project, App Check, deployment to Firebase Hosting | blocked: needs the owner's Firebase project and login |
 
 ### Evidence, 2026-11-10
@@ -99,7 +99,62 @@ and no inference was run there. That browser is not the target browser.
 `http://localhost:5173` in Chrome on the build machine and sent a screenshot.
 It shows `Prompt API availability (text + image): available` and, after
 **Initialise on-device model**, `Model ready on this device.` No inference was
-run. The three inference rows in the table above remain unverified.
+run. The three inference rows in the table above remain unverified. The
+screenshot was of the baseline page (text + image input). The page now asks for
+text input only, which has not been re-checked in Chrome.
+
+**Proof of concept retargeted to GS-03 (after the baseline commit, about 14:00
+WAT, before the submission period opened).** The page now sends eleven synthetic
+log events (`src/data/gs03.ts`) to the on-device model and checks the proposal
+it returns. `npm test`: 21 of 21 passing. `npm run build` and `npm run lint`
+clean. The page rendered in the Claude desktop app's built-in browser with no
+console errors, showing `Prompt API availability (text): downloadable`. No
+inference was run.
+
+**Retargeted page in the target browser.** A second screenshot from the owner's
+Chrome shows the GS-03 page with `Prompt API availability (text): available`,
+`Model ready on this device.` and `Running on-device inference…`. The run had
+not finished when the screenshot was taken, so there is no result to record yet.
+
+**Confirmed by the owner, 2026-11-11.** Entrant: individual. Firebase: a new,
+separate project. Domain: `phang.store`; intended URL: `project.phang.store`.
+The GS-03 work stays uncommitted on `feat/gs03-investigation` until one
+on-device inference run has succeeded.
+
+**First on-device inference runs (owner's Chrome, about 14:15 WAT).** Two runs
+of **Propose on this device** on the eleven GS-03 events. Source: the page text
+pasted by the owner (run A) and a screenshot (run B).
+
+| | Run A | Run B |
+| --- | --- | --- |
+| Network during run (`navigator.onLine`) | online at start and end | offline at start and end |
+| Inference source (SDK) | `on_device` | `on_device` |
+| Latency | 42,464 ms | 28,922 ms |
+| Schema validation | valid | valid |
+| Classification proposed | Credential Compromise | Insider Threat |
+| Confidence proposed | Medium | Medium |
+| Citation and time checks | no problem found | no problem found |
+| Findings (events cited) | 5 (E05; E06; E07; E08; E11) | 4 (E05, E09; E06; E08; E11) |
+| Says customer data was accessed | no | no |
+
+What the runs show:
+
+- On-device inference works on the build machine, with no Firebase project
+  configured, and returns output that passes the schema check.
+- Run B is the offline evidence so far. The page reported offline throughout
+  and the SDK reported `on_device`. How the network was turned off, and the
+  DevTools Network tab, were not captured, so "no network requests during the
+  run" is not yet shown.
+- The model's reading is not reliable. Both runs treat E09, a sign-out, as a
+  sign-in: run A in its explanation ("sign-in from an unrecognized device (E05 &
+  E09)"), run B in a finding ("Unrecognized device login" citing E05 and E09)
+  and again in its explanation, which says the account "signs out" at E05. Run B
+  leaves out E07 (alerts disabled) and proposes Insider Threat although the
+  account owner denies the activity.
+- The code check reported no problem in either run. That is what it was built
+  to do (cited events exist, quoted times belong to them) and it is not enough:
+  it cannot tell a correct reading of an event from a wrong one.
+- Latency is 29 to 42 seconds for eleven events on an Apple M1 with 16 GB.
 
 ### How to finish the on-device checks (owner, in Chrome on the build machine)
 
@@ -108,14 +163,15 @@ run. The three inference rows in the table above remain unverified.
    enable `chrome://flags/#prompt-api-for-gemini-nano-multimodal-input`,
    relaunch Chrome, reload. Record what it says.
 3. Click **Initialise on-device model**. Record whether it downloads and how long.
-4. Choose a JPEG, type a note containing at least two measurements, click
-   **Generate record on this device**. Record inference source, latency, schema
-   validation, missing fields, and ungrounded numbers.
+4. Click **Propose on this device**. Record inference source, latency, schema
+   validation, the classification, and every problem the code check lists.
 5. Offline run: turn Wi-Fi off at the OS (not DevTools throttling), confirm the
    page shows `offline`, open DevTools > Network, repeat step 4. Pass means:
    source `on_device`, a valid record, and no network requests during the run.
-6. Repeat step 4 on five real photos. For each: is the record correct, and did
-   the grounding check flag anything it should not have, or miss anything?
+6. Repeat step 4 five times. For each run: is the classification Credential
+   Compromise, does any finding claim that customer data was accessed (event E08
+   was denied), and did the code check flag anything it should not have, or miss
+   anything?
 
 Paste the results under a new dated Evidence heading.
 
@@ -138,22 +194,29 @@ error in `ONLY_ON_DEVICE` mode. The app refuses to proceed in that case.
 construct a model without `apiKey`, `projectId` and `appId`. The placeholder
 lets the on-device path run now; a cloud request with it cannot succeed.
 
-**Grounding rule: every number in the record must appear in the student's note.**
-A number the model read from the photo is flagged the same as an invented one,
-because code cannot tell them apart; the student confirms it. Known limits:
-sign is ignored, units are not compared, number words are not recognised.
+**Grounding rule: every finding cites events, and code checks the citations.**
+A finding with no cited event, a cited event that is not in the evidence, or a
+quoted time that does not belong to a cited event is reported as a problem.
+Known limits: this shows the cited events exist, not that the finding reads
+them correctly; am/pm is not read; dates are not checked.
 
-**The model's `missing_information` field is not trusted.** Missing fields are
-computed from the record in `findMissingFields`.
+**The model's classification and confidence are shown as a proposal, never as
+verified.** Code has no way to confirm them. The analyst decides.
 
-**Firestore's built-in offline persistence for records; a custom queue only for
-photos.** Not built yet. No conflict detection planned.
+**The model only sees parsed events, never raw logs.** The on-device context is
+small, so selection and parsing happen in code first. Today the eleven events
+are fixed; a real parser is not built.
+
+**Firestore's built-in offline persistence for case records.** Not built yet.
+No conflict detection planned.
 
 ## Open questions
 
 - Official #BuildHybridAI rules: eligibility, individual or organisation entry,
   reuse of prior work and prior research, submission requirements, judging
   weights. Not published as of 2026-11-11 13:53 WAT.
-- Whether on-device inference works on the target demo hardware at usable latency.
-- Licence and copyright holder. Held until the rules say who the entrant can be.
-- Custom domain. Needs a Firebase project and a Hosting deployment first.
+- Whether 29 to 42 seconds per proposal is usable, and whether it holds on the
+  demo hardware.
+- Licence. The owner enters as an individual; no licence file has been added yet.
+- Custom domain `project.phang.store`. Needs a Firebase project and a Hosting
+  deployment first.

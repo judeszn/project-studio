@@ -9,10 +9,11 @@ checks that every event it cites exists. A cloud model adds depth when the
 machine is online, and is labelled as such. A human approves, modifies, rejects
 or escalates. First scenario: credential compromise, on synthetic data.
 
-Current state: pre-submission baseline. The one page here is a proof of concept
-from an earlier direction (photo and note to a structured experiment record,
-checked by code). It is being replaced. See [docs/DECISIONS.md](docs/DECISIONS.md)
-for what was written when, and what has and has not been verified.
+Current state: Milestone 1 proof of concept. One page sends eleven synthetic log
+events to Gemini Nano on the device, gets back a proposed classification with
+findings that cite events, and checks those citations with deterministic code.
+See [docs/DECISIONS.md](docs/DECISIONS.md) for what was written when, and what
+has and has not been verified.
 
 ## Run it
 

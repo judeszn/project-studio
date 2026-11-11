@@ -1,49 +1,64 @@
-export interface Measurement {
-  quantity: string
-  value: number
-  unit: string
+// One row of evidence, already parsed. The model only ever sees these rows.
+export interface LogEvent {
+  id: string
+  date: string // YYYY-MM-DD
+  time: string // HH:MM, 24-hour
+  source: 'identity' | 'audit' | 'repository' | 'statement'
+  actor: string
+  action: string
+  target: string
+  outcome: 'success' | 'denied' | 'recorded'
+  detail: string
 }
 
-export interface ExperimentRecord {
-  experiment_title: string
-  materials: string[]
-  observations: string[]
-  measurements: Measurement[]
-  results: string
-  missing_information: string[]
+export const CLASSIFICATIONS = [
+  'Ransomware',
+  'Phishing',
+  'Credential Compromise',
+  'Data Exfiltration',
+  'Insider Threat',
+  'Undetermined',
+] as const
+export type Classification = (typeof CLASSIFICATIONS)[number]
+
+export const CONFIDENCE_LEVELS = ['Low', 'Medium', 'High'] as const
+export type Confidence = (typeof CONFIDENCE_LEVELS)[number]
+
+export interface Finding {
+  claim: string
+  event_ids: string[]
+}
+
+export interface IncidentProposal {
+  classification: Classification
+  confidence: Confidence
+  explanation: string
+  findings: Finding[]
+  recommended_actions: string[]
 }
 
 // Plain JSON Schema: passed to Gemini Nano as `responseConstraint`, and the
-// shape `parseRecord` in verify.ts re-checks by hand. Keep the two in step.
-export const experimentRecordSchema = {
+// shape `parseProposal` in verify.ts re-checks by hand. Keep the two in step.
+export const incidentProposalSchema = {
   type: 'object',
   additionalProperties: false,
-  required: [
-    'experiment_title',
-    'materials',
-    'observations',
-    'measurements',
-    'results',
-    'missing_information',
-  ],
+  required: ['classification', 'confidence', 'explanation', 'findings', 'recommended_actions'],
   properties: {
-    experiment_title: { type: 'string' },
-    materials: { type: 'array', items: { type: 'string' } },
-    observations: { type: 'array', items: { type: 'string' } },
-    measurements: {
+    classification: { type: 'string', enum: CLASSIFICATIONS },
+    confidence: { type: 'string', enum: CONFIDENCE_LEVELS },
+    explanation: { type: 'string' },
+    findings: {
       type: 'array',
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['quantity', 'value', 'unit'],
+        required: ['claim', 'event_ids'],
         properties: {
-          quantity: { type: 'string' },
-          value: { type: 'number' },
-          unit: { type: 'string' },
+          claim: { type: 'string' },
+          event_ids: { type: 'array', items: { type: 'string' } },
         },
       },
     },
-    results: { type: 'string' },
-    missing_information: { type: 'array', items: { type: 'string' } },
+    recommended_actions: { type: 'array', items: { type: 'string' } },
   },
 } as const

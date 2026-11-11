@@ -24,7 +24,7 @@ Node is 20.15 on the build machine: stay on Vite 6 and Vitest 3 until Node is up
 - Never substitute cloud inference for a claimed on-device result. On-device
   features use `InferenceMode.ONLY_ON_DEVICE` and fail visibly when the model is
   unavailable. Show `response.inferenceSource` wherever a result is shown.
-- Deterministic checks (schema, missing fields, number grounding) live in
+- Deterministic checks (schema, cited events, quoted times) live in
   `src/lib/verify.ts` and are never delegated to a model. They fail closed.
   Every change there comes with unit tests.
 - Never commit Firebase secrets or App Check debug tokens. Config comes from
