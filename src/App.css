@@ -173,15 +173,13 @@ ol {
   list-style: none;
 }
 
-.events li,
-.finding {
+.events li {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
   overflow-wrap: anywhere;
 }
 
-.events li:last-child,
-.finding:last-child {
+.events li:last-child {
   border-bottom: 0;
 }
 
@@ -254,6 +252,96 @@ label.check {
 
 .where.cloud {
   border-left-color: var(--warn);
+}
+
+/* The report. A verdict is always written out, never shown by colour alone. */
+
+.banner {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+}
+
+.label {
+  margin: 0.75rem 0 0.25rem;
+  font-weight: 600;
+}
+
+.verdict {
+  display: inline-block;
+  padding: 0 0.45rem;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.verdict.verified {
+  background: var(--ok);
+}
+
+.verdict.rejected,
+.verdict.contradicted {
+  background: var(--fail);
+}
+
+.verdict.unchecked {
+  background: var(--warn);
+}
+
+@media (prefers-color-scheme: dark) {
+  .verdict {
+    color: #111418;
+  }
+}
+
+.meanings {
+  padding-left: 0;
+  list-style: none;
+}
+
+.meanings li {
+  margin-bottom: 0.35rem;
+}
+
+ol.findings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.finding.verified {
+  border-left-color: var(--ok);
+}
+
+.finding.rejected,
+.finding.contradicted {
+  border-left-color: var(--fail);
+}
+
+.finding.unchecked {
+  border-left-color: var(--warn);
+}
+
+.finding p {
+  margin: 0.4rem 0;
+}
+
+.cited summary {
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 footer {

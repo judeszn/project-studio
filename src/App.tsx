@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { InferenceMode } from 'firebase/ai'
 import { GS03_EVENTS } from './data/gs03'
-import { ATTACK_NOTICE, ATTACK_REFERENCES, ATTACK_TERMS_URL, attackUrl } from './lib/attack'
+import { ATTACK_NOTICE, ATTACK_TERMS_URL } from './lib/attack'
 import { MAX_CASE_BYTES, parseCaseFile } from './lib/casefile'
 import type { CaseSource, LoadedCase, Provenance } from './lib/casefile'
 import { ai, appCheckMode, firebaseConfigured } from './lib/firebase'
@@ -16,18 +15,23 @@ import {
 } from './lib/hybrid'
 import type { ConsentReason, Done, Engine, Request, buildModels } from './lib/hybrid'
 import { SYSTEM_PROMPT, authSystemPrompt, buildPrompt } from './lib/prompts'
-import { buildRunRecord, locationOf, readOnDeviceParams, recordFileName, sha256Hex } from './lib/record'
+import { buildRunRecord, readOnDeviceParams, recordFileName, sha256Hex } from './lib/record'
 import type { RunFacts, RunRecord } from './lib/record'
+import { buildReport, reportFileName, reportHtml } from './lib/report'
+import type { Report } from './lib/report'
 import { FINDING_TYPES, LANL_FINDING_TYPES, lanlProposalSchema } from './lib/schema'
 import type { FindingType, LogEvent } from './lib/schema'
 import { verifyProposal } from './lib/verify'
-import type { FindingSupport, Problem, Support, Verification } from './lib/verify'
+import type { Verification } from './lib/verify'
+import { ReportView } from './ReportView'
+import { EventList, Panel } from './ui'
 import './App.css'
 
 // A case (the built-in synthetic one, or a case file the analyst opens from
 // disk) -> Gemini Nano on this device, or, only with the analyst's consent,
 // Gemini in the cloud (see lib/hybrid.ts) -> incident proposal -> the same
-// deterministic checks -> a run record the analyst can keep.
+// deterministic checks -> an investigation report and a run record the
+// analyst can keep.
 
 // Everything a run needs for one case. The engine is built per case, because
 // the instruction and the finding types belong to the evidence.
@@ -99,11 +103,8 @@ type Run =
   | { state: 'failed'; error: string; record?: RunRecord }
 
 interface RunResult {
-  request: Request
-  done: Done
-  findingTypes: readonly FindingType[]
-  verification: Verification
   record: RunRecord
+  report: Report
 }
 
 // When a run began, and whether the browser was online then.
@@ -115,16 +116,20 @@ interface Started {
 const started = (): Started => ({ at: new Date().toISOString(), online: navigator.onLine })
 
 // Saved by the browser to the analyst's disk. Nothing is uploaded.
-function download(record: RunRecord) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' }),
-  )
+function save(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }))
   const link = document.createElement('a')
   link.href = url
-  link.download = recordFileName(record)
+  link.download = name
   link.click()
   URL.revokeObjectURL(url)
 }
+
+const download = (record: RunRecord) =>
+  save(recordFileName(record), JSON.stringify(record, null, 2), 'application/json')
+
+const exportReport = (record: RunRecord, report: Report) =>
+  save(reportFileName(record), reportHtml(report, new Date().toISOString()), 'text/html')
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(navigator.onLine)
@@ -261,7 +266,7 @@ function App() {
       },
       verification,
     )
-    setResult({ request, done, findingTypes: c.findingTypes, verification, record })
+    setResult({ record, report: buildReport(record, c.events, c.provenance) })
     setRun({ state: 'done' })
   }
 
@@ -419,7 +424,12 @@ function App() {
             <h3>Evidence</h3>
             <span className="status">{events} events</span>
           </summary>
-          <EventList events={active.events} provenance={active.provenance} />
+          <EventList
+            events={active.events.map((event) => ({
+              event,
+              provenance: active.provenance?.[event.id] ?? null,
+            }))}
+          />
         </details>
         <div className="actions">
           <button onClick={() => start('on_device')} disabled={busy}>
@@ -492,7 +502,13 @@ function App() {
         )}
       </section>
 
-      {result && <Result result={result} />}
+      {result && (
+        <ReportView
+          report={result.report}
+          onExport={() => exportReport(result.record, result.report)}
+          onRecord={() => download(result.record)}
+        />
+      )}
 
       <footer className="hint">
         MITRE ATT&amp;CK® references: {ATTACK_NOTICE}{' '}
@@ -502,340 +518,6 @@ function App() {
         .
       </footer>
     </main>
-  )
-}
-
-function EventList({
-  events,
-  provenance,
-}: {
-  events: LogEvent[]
-  provenance: Record<string, Provenance> | null
-}) {
-  return (
-    <ol className="events">
-      {events.map((e) => (
-        <li key={e.id}>
-          <div>
-            <strong>{e.id}</strong>{' '}
-            <span className="hint">
-              {e.date} {e.time} · {e.source}
-            </span>
-          </div>
-          <div>
-            {e.actor} · {e.action}: {e.target} · {e.outcome}
-          </div>
-          <div className="hint">{e.detail}</div>
-          {provenance?.[e.id] && (
-            <div className="hint">
-              Original record, {provenance[e.id].file} line {provenance[e.id].line}:{' '}
-              <code>{provenance[e.id].raw}</code>
-            </div>
-          )}
-        </li>
-      ))}
-    </ol>
-  )
-}
-
-// A section that folds away, so a long result reads on a phone. The summary
-// line keeps the essentials visible while it is closed.
-function Panel({
-  title,
-  status,
-  open = false,
-  children,
-}: {
-  title: string
-  status?: string
-  open?: boolean
-  children: ReactNode
-}) {
-  return (
-    <details className="panel" open={open}>
-      <summary>
-        <h2>{title}</h2>
-        {status && <span className="status">{status}</span>}
-      </summary>
-      <div className="panel-body">{children}</div>
-    </details>
-  )
-}
-
-function Sub({
-  title,
-  status,
-  open = false,
-  children,
-}: {
-  title: string
-  status?: string
-  open?: boolean
-  children: ReactNode
-}) {
-  return (
-    <details className="sub" open={open}>
-      <summary>
-        <h3>{title}</h3>
-        {status && <span className="status">{status}</span>}
-      </summary>
-      {children}
-    </details>
-  )
-}
-
-function Result({ result }: { result: RunResult }) {
-  const { verification, done, record } = result
-  const location = locationOf(done.inferenceSource)
-  const passing = verification.passes.filter(Boolean).length
-  // On a phone the result lands below the buttons, out of sight.
-  const top = useRef<HTMLElement>(null)
-  useEffect(() => {
-    top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-  return (
-    <section ref={top}>
-      <h2>3. Proposal</h2>
-      <p className={`where ${location === 'cloud' ? 'cloud' : 'device'}`}>
-        {location === 'on-device'
-          ? done.consented
-            ? 'Ran on this device: Gemini Nano, after you agreed to the cloud.'
-            : 'Ran on this device: Gemini Nano. Nothing was sent to the cloud.'
-          : location === 'cloud'
-            ? `Ran in the cloud: ${CLOUD_MODEL}. The evidence was sent after your consent.`
-            : 'The SDK did not report where this ran.'}
-      </p>
-      <div className="actions">
-        <button className="secondary" onClick={() => download(record)}>
-          Download run record
-        </button>
-      </div>
-      <p className="hint">
-        The record holds the case's hash, the prompts and their hashes, the raw output, where
-        it ran, the latency and every check result. It is saved to your disk and contains the
-        evidence.
-      </p>
-      <dl>
-        <dt>Inference source (reported by SDK)</dt>
-        <dd className={sourceClass(done)}>
-          {done.inferenceSource}
-          {sourceNote(done)}
-        </dd>
-        <dt>Schema validation (by code)</dt>
-        <dd className={verification.parse.ok ? 'ok' : 'fail'}>
-          {verification.parse.ok ? 'valid' : 'invalid'}
-        </dd>
-        {verification.parse.ok && (
-          <>
-            <dt>Classification (proposed by the model, not verified)</dt>
-            <dd>{verification.parse.proposal.classification}</dd>
-            <dt>Confidence (the model's own, not verified)</dt>
-            <dd>{verification.parse.proposal.confidence}</dd>
-            <dt>Findings that pass every check (by code)</dt>
-            <dd className={passClass(verification.passes)}>
-              {passing} of {verification.passes.length},
-              covering {verification.covered.length} distinct event
-              {verification.covered.length === 1 ? '' : 's'}
-            </dd>
-            <dt>Citation, time, account and repeat checks (by code)</dt>
-            <dd className={verification.problems.length === 0 ? 'ok' : 'fail'}>
-              {verification.problems.length === 0
-                ? 'no problem found'
-                : `${verification.problems.length} problem(s)`}
-            </dd>
-            <dt>Evidence support checks (by code)</dt>
-            <dd className={supportClass(verification.support)}>
-              {verification.support.filter((s) => s.status === 'supported').length} of{' '}
-              {verification.support.length} findings supported
-            </dd>
-          </>
-        )}
-      </dl>
-      {!verification.parse.ok && (
-        <ul className="fail">
-          {verification.parse.errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
-      )}
-      <Sub
-        title="How it ran"
-        status={`${done.mode} · ${(done.latencyMs / 1000).toFixed(1)} s · consent ${done.consented ? 'given' : 'not needed'}`}
-      >
-        <dl>
-          <dt>Inference requested</dt>
-          <dd>{result.request === 'on_device' ? 'on this device' : 'in the cloud'}</dd>
-          <dt>Consent to send evidence to the cloud</dt>
-          <dd>{done.consented ? 'given' : 'not asked; nothing was sent'}</dd>
-          <dt>Inference preference (SDK mode)</dt>
-          <dd>{done.mode}</dd>
-          <dt>Latency</dt>
-          <dd>{done.latencyMs} ms</dd>
-          <dt>Network during run</dt>
-          <dd>
-            {record.execution.onlineAtStart ? 'online' : 'offline'} at start,{' '}
-            {record.execution.onlineAtEnd ? 'online' : 'offline'} at end
-          </dd>
-        </dl>
-      </Sub>
-      {verification.parse.ok && (
-        <>
-          <Sub title="Explanation" open>
-            <p>{verification.parse.proposal.explanation}</p>
-            <p className="hint">
-              Prose by the model. Code checks only the events, times and accounts it names.
-            </p>
-            <ProblemList problems={problemsAt(verification.problems, 'explanation')} />
-          </Sub>
-
-          <Sub
-            title="Findings"
-            status={`${passing} of ${verification.passes.length} pass`}
-            open
-          >
-            <p className="hint">
-              Three code checks per finding. Citations: the cited events exist, and quoted times
-              and accounts belong to them. Support: the cited events are of the kind, and have
-              the outcome, that the finding's type states. Repeats: the finding does not repeat
-              another. A finding passes only if it clears all three. None reads the wording of a
-              claim.
-            </p>
-            <ProblemList problems={problemsAt(verification.problems, 'findings')} />
-            <ol>
-              {verification.parse.proposal.findings.map((finding, i) => {
-                const problems = problemsAt(verification.problems, `findings[${i}]`)
-                const support = verification.support[i]
-                const passes = verification.passes[i]
-                const reference = ATTACK_REFERENCES[finding.type]
-                return (
-                  <li key={i} className="finding">
-                    <div>
-                      {passes ? (
-                        <span className="ok">Passes every check</span>
-                      ) : (
-                        <>
-                          <span className="fail">Does not pass:</span>{' '}
-                          <span className={SUPPORT_CLASS[support.status]}>
-                            {SUPPORT_LABEL[support.status]}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <div>{finding.claim}</div>
-                    <div className="hint">
-                      {finding.type} · cites {finding.event_ids.join(', ') || 'no event'}
-                    </div>
-                    {TYPE_NOTE[finding.type] && <p className="hint">{TYPE_NOTE[finding.type]}</p>}
-                    {passes && reference && (
-                      <p className="hint">
-                        ATT&amp;CK reference, if this was adversary activity:{' '}
-                        <a href={attackUrl(reference.id)} target="_blank" rel="noreferrer">
-                          {reference.id} {reference.name}
-                        </a>
-                        . A reference, not a conclusion.
-                      </p>
-                    )}
-                    <ProblemList problems={problems} />
-                    {support.notes.length > 0 && (
-                      <ul className="fail">
-                        {support.notes.map((note) => (
-                          <li key={note}>{note}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                )
-              })}
-            </ol>
-            <p className="hint">
-              Events no finding cites:{' '}
-              {verification.uncited.length > 0 ? verification.uncited.join(', ') : 'none'}. Code
-              does not judge whether they matter.
-            </p>
-          </Sub>
-
-          <Sub
-            title="Recommended actions"
-            status={`${verification.parse.proposal.recommended_actions.length}, proposed, not taken`}
-          >
-            <ol>
-              {verification.parse.proposal.recommended_actions.map((action, i) => (
-                <li key={i}>
-                  {action}
-                  <ProblemList
-                    problems={problemsAt(verification.problems, `recommended_actions[${i}]`)}
-                  />
-                </li>
-              ))}
-            </ol>
-          </Sub>
-        </>
-      )}
-      <Sub title="Raw model output">
-        <pre>{done.text}</pre>
-      </Sub>
-    </section>
-  )
-}
-
-// Without consent the only mode is LOCAL_MODE, so anything but on_device there
-// is a fault. After consent either source is legitimate; the note says why.
-function sourceClass(done: Done): string {
-  if (done.mode === LOCAL_MODE) return done.inferenceSource === 'on_device' ? 'ok' : 'fail'
-  return 'ok'
-}
-
-function sourceNote(done: Done): string {
-  if (done.mode === LOCAL_MODE) return done.inferenceSource === 'on_device' ? '' : ' (unexpected)'
-  if (done.inferenceSource !== 'on_device') return ''
-  return done.mode === InferenceMode.PREFER_IN_CLOUD
-    ? ' (the cloud call failed, so the SDK used Gemini Nano)'
-    : ' (Gemini Nano had become available, so nothing was sent)'
-}
-
-// What a type does and does not say, shown beside every finding of it: code
-// checks the cited events, not the wording of the claim.
-const TYPE_NOTE: Partial<Record<FindingType, string>> = {
-  logon: 'A logon is an account authenticating to a computer. It is not by itself an attack.',
-  denied_logon:
-    'A denied logon is an attempt the evidence records as refused. It does not show that access was obtained, that an account is compromised, or an attack.',
-}
-
-const problemsAt = (problems: Problem[], path: string) => problems.filter((p) => p.path === path)
-
-const SUPPORT_LABEL: Record<Support, string> = {
-  supported: 'supported by the cited events',
-  unsupported: 'not supported by the cited events',
-  contradicted: 'contradicted by the cited events',
-  unchecked: 'not checked by code (type "other")',
-}
-
-const SUPPORT_CLASS: Record<Support, string> = {
-  supported: 'ok',
-  unsupported: 'fail',
-  contradicted: 'fail',
-  unchecked: 'warn',
-}
-
-// Green only when there is at least one finding and every one passes.
-function passClass(passes: boolean[]): string {
-  return passes.length > 0 && passes.every(Boolean) ? 'ok' : 'fail'
-}
-
-// Green only when every finding is supported; amber when the rest are unchecked.
-function supportClass(support: FindingSupport[]): string {
-  if (support.some((s) => s.status === 'unsupported' || s.status === 'contradicted')) return 'fail'
-  return support.length > 0 && support.every((s) => s.status === 'supported') ? 'ok' : 'warn'
-}
-
-function ProblemList({ problems }: { problems: Problem[] }) {
-  if (problems.length === 0) return null
-  return (
-    <ul className="fail">
-      {problems.map((p, i) => (
-        <li key={i}>{p.problem}</li>
-      ))}
-    </ul>
   )
 }
 
