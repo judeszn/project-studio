@@ -13,6 +13,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-in',
     target: 'admin console',
     outcome: 'success',
+    device: 'managed',
     detail: 'Managed device MGMT-PC1, 192.168.30.14. Multi-factor challenge passed.',
   },
   {
@@ -24,6 +25,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-in',
     target: 'staff portal',
     outcome: 'success',
+    device: 'managed',
     detail: 'Managed device HR-PC1, 192.168.10.21. Multi-factor challenge passed.',
   },
   {
@@ -35,6 +37,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-out',
     target: 'admin console',
     outcome: 'success',
+    device: 'managed',
     detail: 'Managed device MGMT-PC1.',
   },
   {
@@ -57,6 +60,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-in',
     target: 'admin console',
     outcome: 'success',
+    device: 'unrecognised',
     detail: 'Unrecognised device. Source address 203.0.113.57, outside the organisation. No multi-factor challenge recorded.',
   },
   {
@@ -101,6 +105,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-out',
     target: 'admin console',
     outcome: 'success',
+    device: 'unrecognised',
     detail: 'Unrecognised device.',
   },
   {
@@ -112,6 +117,7 @@ export const GS03_EVENTS: LogEvent[] = [
     action: 'sign-in',
     target: 'staff portal',
     outcome: 'success',
+    device: 'managed',
     detail: 'Managed device Account-PC1, 192.168.20.18. Multi-factor challenge passed.',
   },
   {

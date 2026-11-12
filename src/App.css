@@ -1,17 +1,19 @@
+/* Mobile first: base rules are for a phone; the media query widens them. */
+
 main {
   max-width: 44rem;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  padding: 1rem 1rem 3rem;
 }
 
 h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
 }
 
 h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 h3 {
@@ -20,31 +22,87 @@ h3 {
 }
 
 .lede {
-  margin: 0.25rem 0 1.5rem;
+  margin: 0.25rem 0 1rem;
   color: var(--muted);
 }
 
-section {
-  margin-bottom: 1rem;
-  padding: 1rem;
+section,
+.panel {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
 
+/* Collapsible sections. The summary is the tap target: at least 44px high. */
+
+summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary::before {
+  content: '▸';
+  color: var(--muted);
+}
+
+details[open] > summary::before {
+  content: '▾';
+}
+
+summary h2,
+summary h3 {
+  display: inline;
+  margin: 0;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.panel-body {
+  padding-bottom: 0.5rem;
+}
+
+.sub {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Label above value on a phone; side by side when there is room. */
+
 dl {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.4rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.1rem;
   margin: 0;
 }
 
 dt {
   color: var(--muted);
+  font-size: 0.9rem;
 }
 
 dd {
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -72,7 +130,17 @@ textarea {
   color: inherit;
 }
 
+/* Buttons stack full width on a phone, sit in a row when there is room. */
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
 button {
+  min-height: 44px;
   padding: 0.55rem 1rem;
   border: 0;
   border-radius: 6px;
@@ -83,42 +151,48 @@ button {
   cursor: pointer;
 }
 
+button.secondary {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.scroll {
-  margin-bottom: 0.75rem;
-  overflow-x: auto;
+.events,
+ol {
+  padding-left: 1.25rem;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+.events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-th,
-td {
-  padding: 0.3rem 0.5rem;
+.events li,
+.finding {
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
+  overflow-wrap: anywhere;
 }
 
-th {
-  color: var(--muted);
-  font-weight: 600;
+.events li:last-child,
+.finding:last-child {
+  border-bottom: 0;
 }
 
 pre {
-  margin: 0;
+  margin: 0 0 0.5rem;
   padding: 0.75rem;
   border-radius: 6px;
   background: var(--bg);
-  overflow-x: auto;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .ok {
@@ -135,4 +209,87 @@ pre {
 
 .hint {
   color: var(--muted);
+}
+
+.consent {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.case {
+  margin-bottom: 0.75rem;
+}
+
+.case input[type='file'] {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.25rem;
+}
+
+label.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.75rem;
+}
+
+.hash,
+.events code {
+  overflow-wrap: anywhere;
+}
+
+.where {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.where.device {
+  border-left-color: var(--ok);
+}
+
+.where.cloud {
+  border-left-color: var(--warn);
+}
+
+footer {
+  font-size: 0.85rem;
+}
+
+@media (min-width: 40rem) {
+  main {
+    padding: 1.5rem 1rem 4rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  section,
+  .panel {
+    padding: 1rem;
+  }
+
+  .panel {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  dl {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.4rem 1rem;
+  }
+
+  dd {
+    margin-bottom: 0;
+  }
+
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
