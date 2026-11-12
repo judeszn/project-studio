@@ -21,16 +21,25 @@ Node is 20.15 on the build machine: stay on Vite 6 and Vitest 3 until Node is up
 
 - Never claim a capability works without testing it. Record the evidence in
   `docs/DECISIONS.md`; no item is complete without it.
-- Never substitute cloud inference for a claimed on-device result. On-device
-  features use `InferenceMode.ONLY_ON_DEVICE` and fail visibly when the model is
-  unavailable. Show `response.inferenceSource` wherever a result is shown.
-- Deterministic checks (schema, cited events, quoted times) live in
+- Evidence never reaches the cloud without the analyst's consent. Routing lives
+  in `src/lib/hybrid.ts`: the only run made without consent is
+  `ONLY_ON_DEVICE`, refused when the SDK has no on-device adapter; cloud-capable
+  runs use `PREFER_ON_DEVICE` or `PREFER_IN_CLOUD` and only follow consent.
+  `src/lib/hybrid-sdk.test.ts` checks this against the installed SDK; rerun it
+  after any Firebase upgrade. Firebase AI Logic only, never a direct Gemini API
+  call. Show the SDK mode and `response.inferenceSource` wherever a result is
+  shown.
+- Deterministic checks (schema, citations, quoted times and accounts, whether
+  cited events support a finding's type, repeated findings) live in
   `src/lib/verify.ts` and are never delegated to a model. They fail closed.
   Every change there comes with unit tests.
 - Never commit Firebase secrets or App Check debug tokens. Config comes from
   `.env.local`; the debug token goes in `.env.development.local` only.
   Read env vars as `import.meta.env.NAME`, never through an alias.
 - Do not disable App Check to make something work.
+- ATT&CK references (`src/lib/attack.ts`) are metadata on findings that pass,
+  never evidence. Map a type only when its checked facts are the technique's
+  behaviour; check IDs against attack.mitre.org; keep MITRE's notice.
 - Synthetic demonstration data only, labelled as synthetic. No real logs, no
   real people, no real organisations.
 - Do not fake network disconnection.

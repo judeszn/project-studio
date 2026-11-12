@@ -1,0 +1,29 @@
+Project Studio
+Copyright 2026 Boluwatife Faturoti
+
+Project Studio's original source code is licensed under the Apache License,
+Version 2.0 (see LICENSE). That licence covers this project's own code and
+synthetic data only. It does not cover the third-party material below, which
+remains under its owners' terms.
+
+MITRE ATT&CK
+  Technique IDs and names in src/lib/attack.ts and shown on the page.
+  © 2026 The MITRE Corporation. This work is reproduced and distributed with
+  the permission of The MITRE Corporation.
+  Terms of use: https://attack.mitre.org/resources/legal-and-branding/terms-of-use/
+
+LANL "Comprehensive, Multi-Source Cyber-Security Events"
+  Not included in this repository. The tools in tools/lanl/ read it from a
+  local copy obtained from Los Alamos National Laboratory
+  (https://csr.lanl.gov/data/cyber1/), under LANL's own terms.
+  A. D. Kent, "Comprehensive, Multi-Source Cybersecurity Events," Los Alamos
+  National Laboratory, http://dx.doi.org/10.17021/1179829, 2015.
+
+Dependencies
+  npm packages (Firebase, React, Vite and others) are used under their own
+  licences, listed in their package metadata under node_modules/.
+
+Synthetic data
+  GS-03 (src/data/gs03.ts) and the fixtures in tools/lanl/fixtures/ are
+  invented for this project. They describe no real organisation, person or
+  system.
