@@ -907,14 +907,12 @@ aside. The approved text was frozen, pinned by test, and recorded here before
 the runs. The verification rule covers logons only; both cases contain only
 logons, so the narrower rule changes nothing here.
 
-**Environment: unconfirmed.** Both records report Chrome 156 with an
-Android 16 / Pixel 10 user agent, Nano `available`, sampling defaults not
-reported. The page was served from the build Mac (`localhost:5173`), which a
-phone cannot reach without forwarding, so DevTools device emulation on the
-Mac is the likely explanation. The record alone cannot show it, and the owner
-does not recall, so it is reported as unconfirmed (owner's decision,
-2026-11-12). The app's own browser pane (Chrome 152, Nano not downloaded) was
-not used for these runs.
+**Environment: a user-agent override, cause unknown.** Both records report
+Chrome 156 with an Android 16 / Pixel 10 user agent, Nano `available`,
+sampling defaults not reported. The owner ran them in desktop Chrome on the
+Mac and did not knowingly enable device emulation; the string can only come
+from an override (see "User agent (investigated 2026-11-13)" under the
+synthetic demonstration case). Where inference ran is unaffected.
 
 **What Nano proposed, as checked by code**
 
@@ -1075,6 +1073,98 @@ Known limits. Code still does not read a claim's wording, the explanation's
 claims of fact, or the classification; the report says so in three places.
 The report covers completed runs; a failed run has its run record only. The
 report is in English only.
+
+### Synthetic demonstration case (owner's request, built 2026-11-12 to 23:50 WAT)
+
+A one-click demo case for a judge's first run: **Load demo case (synthetic)**
+opens `src/data/demo-case.json` through the same loader and checks as any
+case file. 18 authentication events at Goldshadow Finance, a fictional
+organisation, with Windows-style original records (event IDs 4624, 4625,
+4634, 4768, 4769, 4800, 4801). Labelled synthetic beside the case, at the top
+of the report and in the exported file; a real case file never carries that
+label. As synthetic data it allows the cloud, like the built-in case, and
+every send still waits for consent. LANL data, prompts, cases, labels and
+results were not touched.
+
+**What the evidence offers, and what it cannot promise.** The evidence gives a
+model the chance to be right and to be wrong, and the checks a way to tell:
+three denied logons by `fin-clerk-04` from an unfamiliar workstation, then a
+success from it a minute later (Verified if described as they are;
+Contradicted if the success is called denied); Kerberos tickets and a logoff
+by the same account (Rejected if called logons); a near-identical account,
+`fin-clerk-14`, denied from the same workstation (Rejected if attributed to
+`fin-clerk-04`); events minutes apart (Rejected on a misquoted time); a
+pattern no type checks (Unchecked as `other`); and routine admin, HR and
+backup activity (uncited). Which verdicts a run gets depends on the model's
+answer, so the claim is only that the evidence lets the checks reach each
+one: `src/data/demo-case.test.ts` shows it with written proposals (not model
+output), 10 cases across all four verdicts.
+
+Evidence. 258 of 258 tests in 17 files; `tsc -b`, `eslint .` and the build
+clean. In the browser pane (no Nano), with the demo case only:
+
+| Check | Result |
+| --- | --- |
+| One click | Case opened, synthetic notice shown, SHA-256 on the page equals the file's (`ed97a731…8112`) |
+| Investigate on this device | Nano not downloaded, so the page asked before sending; "Keep on this device" sent nothing (no request to Google APIs) |
+| Investigate in the cloud, consent given | `gemini-3.5-flash-lite`: 3 findings, **all Verified** (two `denied_logon`, one `logon`), 13 of 18 events uncited, classification Undetermined, Low |
+| Export | Synthetic notice present; 3 verdict badges; 36 original records (5 cited, 13 uncited, 18 in the appendix); no script |
+| Phone width (375 px) | No horizontal scroll |
+
+So the one live run produced no Rejected, Contradicted or Unchecked finding:
+the cloud model described the evidence correctly. Disclosed: one more cloud
+call on synthetic data, not an evaluation run.
+
+**On-device run (owner's Chrome, 2026-11-12 23:03 UTC).** Record
+`demo-goldshadow-auth.on-device.20261112T230323Z.run.json` (SHA-256
+`56ab307e…`), in the owner's Downloads folder. Gemini Nano, `only_on_device`,
+no consent, 45.1 s. Case hash and both prompts match the demo case; verifying
+the saved output again gives exactly the recorded result. Not repeated.
+
+| | Result |
+| --- | --- |
+| Findings | 8: **5 Verified** (`denied_logon` on E06, E07, E08, E09, E16), **3 Unchecked** (`other` on E10, the success; E12 and E15, logoffs) |
+| Rejected / Contradicted | 0 / 0 |
+| Uncited | 10 of 18 (E01 to E05, E11, E13, E14, E17, E18) |
+| Classification (proposal) | Credential Compromise, Medium |
+
+What it shows. Nano copied each event's detail into its claims and named no
+account, so no citation, time or account check had anything to catch. Its
+findings hold up against their events, but its explanation goes beyond them:
+it calls the failures "an attacker systematically testing passwords" and
+counts the backup account's restricted logon (E16) as "further supporting
+potential malicious activity", and proposes Credential Compromise. None of
+that is checked by code; the report shows it under "The model's proposal:
+not verified". It also listed two logoffs, against "leave out routine
+activity". So across both live runs on this case (cloud and Nano), no finding
+was Rejected or Contradicted; the gap this run shows is between verified
+findings and an unverified conclusion.
+
+**User agent (investigated 2026-11-13).** All three on-device records (both
+LANL runs and this one) report
+`Mozilla/5.0 (Linux; Android 16; Pixel 10) … Chrome/156.0.0.0 Mobile Safari/537.36`.
+The owner reports running them in desktop Chrome on the Mac, without enabling
+device emulation. Findings:
+
+- The string cannot come from a real phone. Chrome on Android sends a reduced
+  user agent with a fixed `Android 10; K`, never the model name; a named
+  device with a `.0.0.0` version is what an emulation preset writes. A phone
+  also could not reach this dev server, which listens on localhost only.
+- It is not this app's browser pane: in phone mode that reports
+  `Android 14; Pixel 8 … Chrome/152`, and has no Nano.
+- So a user-agent override was active in the owner's Chrome tab during all
+  three runs: DevTools device mode or its "Network conditions" user-agent
+  setting (both act only while DevTools is open, and the device-mode toggle
+  is remembered between sessions), or an extension. Which one is not known.
+- What it does not change: the SDK reported `on_device` in `ONLY_ON_DEVICE`
+  mode with no consent, so where inference ran is as recorded. What it does
+  change: the records' `userAgent` describes the override, not the machine.
+
+Recorded environment for the three runs: Mac (owner's statement); Chrome 156
+(version from the user agent; the override template carries the real major
+version, unconfirmed independently); device emulation not knowingly enabled,
+but a user-agent override was active, cause unknown; Gemini Nano on-device;
+cloud not used. To be resolved before the next recorded demonstration.
 
 ### LANL logons, logoffs and finding types (owner's decisions, built 2026-11-11)
 

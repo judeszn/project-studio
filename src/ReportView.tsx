@@ -5,6 +5,7 @@ import { LOCAL_MODE } from './lib/hybrid'
 import {
   LIMITS,
   PROPOSAL_NOTE,
+  SYNTHETIC_NOTE,
   VERDICTS,
   VERDICT_LABEL,
   VERDICT_MEANING,
@@ -42,6 +43,7 @@ export function ReportView({
   return (
     <section ref={top}>
       <h2>3. Investigation report</h2>
+      {report.synthetic && <p className="warn synthetic">{SYNTHETIC_NOTE}</p>}
       <p className={`where ${run.location === 'cloud' ? 'cloud' : 'device'}`}>{report.where}</p>
       <p className="banner">
         <strong>AI proposes. Code checks. The analyst decides.</strong> {VERIFICATION_NOTE}

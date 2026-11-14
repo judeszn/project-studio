@@ -305,8 +305,9 @@ An item is ticked only with evidence, named beside it.
       tested: it is the next item
 - [x] Nano run on both cases; every run record kept; results recorded with
       latency (100.2 s and 42.4 s, on-device, no consent; records in
-      `~/Data/lanl-cyber1/runs/`; `docs/DECISIONS.md`). The Android user
-      agent is disclosed as unconfirmed
+      `~/Data/lanl-cyber1/runs/`; `docs/DECISIONS.md`). The records'
+      Android user agent is an override, cause unknown; to resolve before the
+      next recorded demonstration
 - [x] Labels applied after the runs; model and baseline compared with them
       (evaluation case: Nano 0 of 21 labelled covered, baseline 10 of 21;
       the control holds 3 labelled events; `docs/DECISIONS.md`)
@@ -317,8 +318,12 @@ An item is ticked only with evidence, named beside it.
       original records, escaped self-contained HTML; `src/lib/report.ts`,
       34 tests; checked in the browser on the synthetic case;
       `docs/DECISIONS.md`)
-- [ ] A synthetic sample case file judges can open (the LANL cases are not
-      published)
+- [x] A synthetic sample case file judges can open (the LANL cases are not
+      published): **Load demo case (synthetic)**, 18 events, same loader
+      (`src/data/demo-case.json`, 14 tests; one consented cloud run, all
+      findings Verified; one on-device Nano run, 5 Verified and 3 Unchecked;
+      `docs/DECISIONS.md`). Neither live run produced a Rejected or
+      Contradicted finding
 - [ ] Production deployment with App Check (reCAPTCHA Enterprise), up until
       Dec 16
 - [ ] Repository checked for secrets before pushing

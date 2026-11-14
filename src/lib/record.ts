@@ -50,7 +50,7 @@ export const locationOf = (inferenceSource: string | null): Location =>
 export interface RunFacts {
   case: {
     id: string
-    origin: 'case file' | 'built-in'
+    origin: 'case file' | 'built-in' | 'demo' // built-in and demo cases are synthetic
     fileName: string | null
     sha256: string // of the file's bytes; for the built-in case, of its events as JSON
     events: number

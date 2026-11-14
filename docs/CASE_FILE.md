@@ -6,7 +6,9 @@ is not uploaded when it is opened, and it reaches a cloud model only if the
 analyst allows the cloud for that case and then consents to the send.
 
 `npm run lanl -- case` writes this format from the LANL authentication data.
-Any tool can write it. The reader is `src/lib/casefile.ts`.
+Any tool can write it. The reader is `src/lib/casefile.ts`. A complete
+example is the synthetic demo case, `src/data/demo-case.json`, which the page
+opens with **Load demo case (synthetic)**.
 
 ## Format
 

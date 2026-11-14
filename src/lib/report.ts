@@ -52,6 +52,9 @@ export const PROPOSAL_NOTE =
 export const VERIFICATION_NOTE =
   'Verification checks each finding against the events it cites. It does not show that an attack occurred, that an account is compromised, or that the classification is right. The analyst decides.'
 
+export const SYNTHETIC_NOTE =
+  'Synthetic demonstration data: fictional events, people and systems. This run shows how the checks treat a model\'s claims; it is not a measure of detection accuracy.'
+
 export const LIMITS = [
   VERIFICATION_NOTE,
   PROPOSAL_NOTE,
@@ -77,6 +80,7 @@ export interface ReportFinding {
 
 export interface Report {
   case: RunRecord['case']
+  synthetic: boolean // the built-in and demo cases, never a case file
   run: {
     location: RunRecord['execution']['location']
     model: string | null
@@ -154,6 +158,7 @@ export function buildReport(
   const { execution, prompt } = record
   const base = {
     case: record.case,
+    synthetic: record.case.origin !== 'case file',
     run: {
       location: execution.location,
       model: execution.model,
@@ -330,6 +335,7 @@ export function reportHtml(report: Report, generatedAt: string): string {
     `<h1>${esc(title)}</h1>`,
     `<p class="muted">Project Studio. Report generated ${esc(generatedAt)}. Run started ${esc(run.startedAt)}.</p>`,
     `<div class="banner"><strong>AI proposes. Code checks. The analyst decides.</strong><br>${esc(VERIFICATION_NOTE)}</div>`,
+    report.synthetic ? `<p class="warn"><strong>${esc(SYNTHETIC_NOTE)}</strong></p>` : '',
     `<p><strong>${esc(report.where)}</strong></p>`,
     `<p class="warn">This report contains the case's evidence. Handle it as you handle the case.</p>`,
 

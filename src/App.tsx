@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { InferenceMode } from 'firebase/ai'
+import DEMO_CASE from './data/demo-case.json?raw'
 import { GS03_EVENTS } from './data/gs03'
 import { ATTACK_NOTICE, ATTACK_TERMS_URL } from './lib/attack'
 import { MAX_CASE_BYTES, parseCaseFile } from './lib/casefile'
@@ -37,7 +38,7 @@ import './App.css'
 // the instruction and the finding types belong to the evidence.
 interface ActiveCase {
   id: string
-  origin: 'built-in' | 'case file'
+  origin: 'built-in' | 'case file' | 'demo' // built-in and demo cases are synthetic
   fileName: string | null
   sha256: string | null // of the file's bytes; the built-in case is hashed when a record is made
   source: CaseSource | null
@@ -67,12 +68,18 @@ const BUILT_IN: ActiveCase = {
 }
 
 // A case file holds authentication events, so it gets their instruction,
-// finding types and response schema.
-function openCase(loaded: LoadedCase, fileName: string, sha256: string): ActiveCase {
+// finding types and response schema. The demo case is a case file too, read
+// by the same loader; only its origin differs.
+function openCase(
+  loaded: LoadedCase,
+  fileName: string,
+  sha256: string,
+  origin: 'case file' | 'demo' = 'case file',
+): ActiveCase {
   const systemPrompt = authSystemPrompt(loaded.modelNotes)
   return {
     id: loaded.id,
-    origin: 'case file',
+    origin,
     fileName,
     sha256,
     source: loaded.source,
@@ -157,10 +164,10 @@ function App() {
   const [result, setResult] = useState<RunResult | null>(null)
 
   const { engine, models } = active
-  // The built-in case is synthetic. A case file is the analyst's evidence:
-  // the cloud is off for it until they turn it on, and even then every send
-  // waits for their consent.
-  const cloudAllowed = active.origin === 'built-in' || allowCloud
+  // The built-in and demo cases are synthetic. A case file is the analyst's
+  // evidence: the cloud is off for it until they turn it on. Either way, every
+  // send waits for their consent.
+  const cloudAllowed = active.origin !== 'case file' || allowCloud
 
   useEffect(() => {
     engine.availability().then(setAvailability)
@@ -207,6 +214,18 @@ function App() {
       return
     }
     show(openCase(parsed.case, file.name, await sha256Hex(bytes)))
+  }
+
+  // The synthetic demo case ships with the page and goes through the same
+  // checks as a file the analyst opens.
+  async function openDemo() {
+    setFileErrors([])
+    const parsed = parseCaseFile(DEMO_CASE)
+    if (!parsed.ok) {
+      setFileErrors(parsed.errors)
+      return
+    }
+    show(openCase(parsed.case, 'demo-case.json', await sha256Hex(DEMO_CASE), 'demo'))
   }
 
   function show(next: ActiveCase) {
@@ -380,6 +399,11 @@ function App() {
           <p className="hint">
             The file is read and checked in this browser. Opening it uploads nothing.
           </p>
+          <div className="actions">
+            <button className="secondary" onClick={openDemo} disabled={busy}>
+              Load demo case (synthetic)
+            </button>
+          </div>
           {fileErrors.length > 0 && (
             <>
               <p className="fail">The file was not opened. Nothing in it was used.</p>
@@ -398,6 +422,13 @@ function App() {
           </p>
         ) : (
           <>
+            {active.origin === 'demo' && (
+              <p className="warn synthetic">
+                Demo case: synthetic data at Goldshadow Finance, a fictional organisation. No
+                real events, people or systems. It shows how the checks treat a model's claims,
+                not how well a model detects attacks.
+              </p>
+            )}
             <dl>
               <dt>Case</dt>
               <dd>{active.id}</dd>
