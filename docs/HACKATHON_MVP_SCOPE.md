@@ -324,6 +324,13 @@ An item is ticked only with evidence, named beside it.
       findings Verified; one on-device Nano run, 5 Verified and 3 Unchecked;
       `docs/DECISIONS.md`). Neither live run produced a Rejected or
       Contradicted finding
+- [x] Analyst-authored worked example showing all four verdicts, labelled
+      "No model ran" on the page, in the export and its file name; same
+      checks as model runs; no run record (`src/data/worked-example.ts`,
+      13 tests; `docs/DECISIONS.md`)
+- [x] Consent prompt discloses the Gemini free-tier data terms before every
+      send, including after an earlier consent (`CLOUD_DATA_TERMS`, 3 tests;
+      browser check; `docs/DEPLOYMENT_READINESS.md`)
 - [ ] Production deployment with App Check (reCAPTCHA Enterprise), up until
       Dec 16
 - [ ] Repository checked for secrets before pushing

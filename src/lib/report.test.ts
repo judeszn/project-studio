@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildReport, esc, reportFileName, reportHtml, VERDICT_LABEL, whereItRan } from './report'
 import type { Report } from './report'
 import { EVENTS, MIXED, PROVENANCE, finding, output, recordFor, reportOf } from './report.fixtures'
+import { recordFileName } from './record'
 import type { RunFacts } from './record'
 import type { LogEvent } from './schema'
 
@@ -187,7 +188,11 @@ describe('reportHtml: the exported file', () => {
 
 describe('reportFileName', () => {
   it('matches the run record’s name', async () => {
-    expect(reportFileName(await recordFor(MIXED))).toBe('synthetic-sample.on-device.20261113T090000Z.report.html')
+    const record = await recordFor(MIXED)
+    expect(reportFileName(buildReport(record, EVENTS, PROVENANCE))).toBe(
+      recordFileName(record).replace(/\.run\.json$/, '.report.html'),
+    )
+    expect(reportFileName(await reportOf(MIXED))).toBe('synthetic-sample.on-device.20261113T090000Z.report.html')
   })
 })
 

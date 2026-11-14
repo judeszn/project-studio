@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { InferenceMode } from 'firebase/ai'
 import DEMO_CASE from './data/demo-case.json?raw'
 import { GS03_EVENTS } from './data/gs03'
+import { WORKED_EXAMPLE_TEXT } from './data/worked-example'
 import { ATTACK_NOTICE, ATTACK_TERMS_URL } from './lib/attack'
 import { MAX_CASE_BYTES, parseCaseFile } from './lib/casefile'
 import type { CaseSource, LoadedCase, Provenance } from './lib/casefile'
 import { ai, appCheckMode, firebaseConfigured } from './lib/firebase'
 import {
+  CLOUD_DATA_TERMS,
   CLOUD_MODEL,
+  GEMINI_TERMS_URL,
   LOCAL_MODE,
   NO_PROMPT_API,
   createEngine,
@@ -18,7 +21,7 @@ import type { ConsentReason, Done, Engine, Request, buildModels } from './lib/hy
 import { SYSTEM_PROMPT, authSystemPrompt, buildPrompt } from './lib/prompts'
 import { buildRunRecord, readOnDeviceParams, recordFileName, sha256Hex } from './lib/record'
 import type { RunFacts, RunRecord } from './lib/record'
-import { buildReport, reportFileName, reportHtml } from './lib/report'
+import { buildReport, buildWorkedExample, reportFileName, reportHtml } from './lib/report'
 import type { Report } from './lib/report'
 import { FINDING_TYPES, LANL_FINDING_TYPES, lanlProposalSchema } from './lib/schema'
 import type { FindingType, LogEvent } from './lib/schema'
@@ -109,8 +112,9 @@ type Run =
   | { state: 'consent'; request: Request; reason: ConsentReason; detail: string }
   | { state: 'failed'; error: string; record?: RunRecord }
 
+// A real run has a record. The worked example has none: no model ran.
 interface RunResult {
-  record: RunRecord
+  record: RunRecord | null
   report: Report
 }
 
@@ -135,8 +139,8 @@ function save(name: string, text: string, type: string) {
 const download = (record: RunRecord) =>
   save(recordFileName(record), JSON.stringify(record, null, 2), 'application/json')
 
-const exportReport = (record: RunRecord, report: Report) =>
-  save(reportFileName(record), reportHtml(report, new Date().toISOString()), 'text/html')
+const exportReport = (report: Report) =>
+  save(reportFileName(report), reportHtml(report, new Date().toISOString()), 'text/html')
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(navigator.onLine)
@@ -218,14 +222,39 @@ function App() {
 
   // The synthetic demo case ships with the page and goes through the same
   // checks as a file the analyst opens.
-  async function openDemo() {
+  async function demoCase(): Promise<ActiveCase | null> {
     setFileErrors([])
     const parsed = parseCaseFile(DEMO_CASE)
     if (!parsed.ok) {
       setFileErrors(parsed.errors)
-      return
+      return null
     }
-    show(openCase(parsed.case, 'demo-case.json', await sha256Hex(DEMO_CASE), 'demo'))
+    return openCase(parsed.case, 'demo-case.json', await sha256Hex(DEMO_CASE), 'demo')
+  }
+
+  async function openDemo() {
+    const c = await demoCase()
+    if (c) show(c)
+  }
+
+  // The worked example: the demo case, and a proposal the Project Studio team
+  // wrote, checked by the same code. No model runs and no run record is made.
+  async function openWorkedExample() {
+    const c = await demoCase()
+    if (!c || !c.sha256) return
+    show(c)
+    const caseInfo = {
+      id: c.id,
+      origin: c.origin,
+      fileName: c.fileName,
+      sha256: c.sha256,
+      events: c.events.length,
+      source: c.source,
+    }
+    setResult({
+      record: null,
+      report: buildWorkedExample(caseInfo, WORKED_EXAMPLE_TEXT, c.events, c.provenance, c.findingTypes),
+    })
   }
 
   function show(next: ActiveCase) {
@@ -403,7 +432,14 @@ function App() {
             <button className="secondary" onClick={openDemo} disabled={busy}>
               Load demo case (synthetic)
             </button>
+            <button className="secondary" onClick={openWorkedExample} disabled={busy}>
+              Analyst-authored worked example (no AI)
+            </button>
           </div>
+          <p className="hint">
+            The worked example checks a proposal the Project Studio team wrote about the demo
+            case, so you can see all four verdicts. No model runs.
+          </p>
           {fileErrors.length > 0 && (
             <>
               <p className="fail">The file was not opened. Nothing in it was used.</p>
@@ -502,6 +538,12 @@ function App() {
               Send these {events} events to {CLOUD_MODEL} through Firebase AI Logic? Nothing has
               been sent yet.
             </p>
+            <p className="warn">
+              {CLOUD_DATA_TERMS}{' '}
+              <a href={GEMINI_TERMS_URL} target="_blank" rel="noreferrer">
+                Gemini API terms
+              </a>
+            </p>
             <div className="actions">
               <button
                 onClick={() => consent(run.request, run.reason)}
@@ -536,8 +578,8 @@ function App() {
       {result && (
         <ReportView
           report={result.report}
-          onExport={() => exportReport(result.record, result.report)}
-          onRecord={() => download(result.record)}
+          onExport={() => exportReport(result.report)}
+          onRecord={result.record ? () => download(result.record!) : undefined}
         />
       )}
 

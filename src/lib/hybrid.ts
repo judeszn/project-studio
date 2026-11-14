@@ -24,6 +24,14 @@ export type ProposalSchema = ReturnType<typeof proposalSchemaFor>
 
 export const CLOUD_MODEL = 'gemini-3.5-flash-lite'
 
+// Shown before every send to the cloud (owner's decision, 2026-11-14). The
+// project uses the Gemini Developer API's free tier, whose terms allow Google
+// to use what is sent; see docs/DEPLOYMENT_READINESS.md.
+export const CLOUD_DATA_TERMS =
+  "This app uses the free tier of the Gemini Developer API. Under Google's terms for it, Google may use what you send to improve its products, and human reviewers may read it. Do not send sensitive, confidential or personal information: use synthetic data, such as the demo case."
+
+export const GEMINI_TERMS_URL = 'https://ai.google.dev/gemini-api/terms'
+
 export const LOCAL_MODE = InferenceMode.ONLY_ON_DEVICE
 
 export function createOptionsFor(systemPrompt: string): LanguageModelCreateOptions {

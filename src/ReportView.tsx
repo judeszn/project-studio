@@ -3,19 +3,22 @@ import { InferenceMode } from 'firebase/ai'
 import { attackUrl } from './lib/attack'
 import { LOCAL_MODE } from './lib/hybrid'
 import {
-  LIMITS,
-  PROPOSAL_NOTE,
+  NO_MODEL_NOTE,
   SYNTHETIC_NOTE,
   VERDICTS,
   VERDICT_LABEL,
   VERDICT_MEANING,
   VERIFICATION_NOTE,
+  WORDS,
+  limitsFor,
 } from './lib/report'
 import type { Report, ReportFinding, Verdict } from './lib/report'
 import { EventList, Problems, Sub } from './ui'
 
 // The investigation report on the page. It renders the same Report the
-// exported file does (lib/report.ts), section for section.
+// exported file does (lib/report.ts), section for section, with the same
+// labels for who wrote the proposal: a model, or, in the worked example, the
+// Project Studio team.
 
 const VERDICT_CLASS: Record<Verdict, string> = {
   verified: 'ok',
@@ -31,9 +34,10 @@ export function ReportView({
 }: {
   report: Report
   onExport: () => void
-  onRecord: () => void
+  onRecord?: () => void // a real run only; the worked example has no run record
 }) {
   const { run, proposal } = report
+  const w = WORDS[report.author]
   const total = report.findings.length
   // On a phone the result lands below the buttons, out of sight.
   const top = useRef<HTMLElement>(null)
@@ -42,31 +46,44 @@ export function ReportView({
   }, [])
   return (
     <section ref={top}>
-      <h2>3. Investigation report</h2>
+      <h2>3. {run ? 'Investigation report' : w.title}</h2>
+      {!run && (
+        <p className="banner noModel">
+          <strong>{NO_MODEL_NOTE}</strong>
+        </p>
+      )}
       {report.synthetic && <p className="warn synthetic">{SYNTHETIC_NOTE}</p>}
-      <p className={`where ${run.location === 'cloud' ? 'cloud' : 'device'}`}>{report.where}</p>
+      {run && (
+        <p className={`where ${run.location === 'cloud' ? 'cloud' : 'device'}`}>{report.where}</p>
+      )}
       <p className="banner">
-        <strong>AI proposes. Code checks. The analyst decides.</strong> {VERIFICATION_NOTE}
+        <strong>{w.motto}</strong> {VERIFICATION_NOTE}
       </p>
       <div className="actions">
         <button onClick={onExport}>Export report (HTML)</button>
-        <button className="secondary" onClick={onRecord}>
-          Download run record (JSON)
-        </button>
+        {onRecord && (
+          <button className="secondary" onClick={onRecord}>
+            Download run record (JSON)
+          </button>
+        )}
       </div>
       <p className="hint">
-        Both are saved to your disk and contain the evidence. The report opens in any browser,
-        without a network, and prints to PDF. The run record holds the prompts, their hashes and
-        the raw output, for reproducing the run.
+        {onRecord
+          ? 'Both are saved to your disk and contain the evidence. The report opens in any browser, without a network, and prints to PDF. The run record holds the prompts, their hashes and the raw output, for reproducing the run.'
+          : 'The report is saved to your disk and contains the evidence. It opens in any browser, without a network, and prints to PDF. No run record exists: no model ran.'}
       </p>
 
       <dl>
-        <dt>Inference source (reported by SDK)</dt>
-        <dd className={sourceClass(report)}>
-          {run.inferenceSource}
-          {sourceNote(report)}
-        </dd>
-        <dt>Model output format (checked by code)</dt>
+        {run && (
+          <>
+            <dt>Inference source (reported by SDK)</dt>
+            <dd className={sourceClass(run)}>
+              {run.inferenceSource}
+              {sourceNote(run)}
+            </dd>
+          </>
+        )}
+        <dt>{run ? 'Model output format (checked by code)' : 'Proposal format (checked by code)'}</dt>
         <dd className={report.parsed ? 'ok' : 'fail'}>{report.parsed ? 'valid' : 'invalid'}</dd>
         {proposal && (
           <>
@@ -81,9 +98,9 @@ export function ReportView({
             <dd className={report.uncited.length > 0 ? 'warn' : ''}>
               {report.uncited.length} of {report.case.events}
             </dd>
-            <dt>Classification (proposed by the model, not verified)</dt>
+            <dt>{w.classification}</dt>
             <dd>{proposal.classification}</dd>
-            <dt>Confidence (the model's own, not verified)</dt>
+            <dt>{w.confidence}</dt>
             <dd>{proposal.confidence}</dd>
           </>
         )}
@@ -92,8 +109,8 @@ export function ReportView({
       {!report.parsed && (
         <>
           <p className="fail">
-            The output did not match the required format, so no finding was checked and every
-            event is uncited.
+            {w.unreadable}: it did not match the required format, so no finding was checked and
+            every event is uncited.
           </p>
           <Problems items={report.parseErrors} />
         </>
@@ -101,15 +118,15 @@ export function ReportView({
 
       {proposal && (
         <>
-          <Sub title="The model's proposal" status="not verified" open>
-            <p className="hint">{PROPOSAL_NOTE}</p>
-            <p className="label">Explanation, written by the model</p>
+          <Sub title={w.proposal} status="not verified" open>
+            <p className="hint">{w.proposalNote}</p>
+            <p className="label">{w.explanation}</p>
             <p>{proposal.explanation}</p>
             <Problems items={proposal.explanationProblems} />
             <dl>
-              <dt>Classification (proposed, not verified)</dt>
+              <dt>{w.classification}</dt>
               <dd>{proposal.classification}</dd>
-              <dt>Confidence (the model's own, not verified)</dt>
+              <dt>{w.confidence}</dt>
               <dd>{proposal.confidence}</dd>
             </dl>
           </Sub>
@@ -126,7 +143,7 @@ export function ReportView({
             <Problems items={report.findingsProblems} />
             <ol className="findings">
               {report.findings.map((f) => (
-                <FindingItem key={f.number} finding={f} />
+                <FindingItem key={f.number} finding={f} claimBy={w.claim} />
               ))}
             </ol>
           </Sub>
@@ -146,8 +163,11 @@ export function ReportView({
       </Sub>
 
       {proposal && (
-        <Sub title="Recommended actions" status={`${proposal.actions.length}, proposed, not taken`}>
-          <p className="hint">Proposed by the model. Not taken, and not verified.</p>
+        <Sub
+          title="Recommended actions"
+          status={`${proposal.actions.length}, ${run ? 'proposed' : 'written for the example'}, not taken`}
+        >
+          <p className="hint">{w.actions}</p>
           <ol>
             {proposal.actions.map((a, i) => (
               <li key={i}>
@@ -160,27 +180,44 @@ export function ReportView({
       )}
 
       <Sub
-        title="How it ran"
-        status={`${run.sdkMode} · ${run.latencyMs === null ? '?' : (run.latencyMs / 1000).toFixed(1)} s · consent ${run.consent ? 'given' : 'not given'}`}
+        title={run ? 'How it ran' : 'How it was made'}
+        status={
+          run
+            ? `${run.sdkMode} · ${run.latencyMs === null ? '?' : (run.latencyMs / 1000).toFixed(1)} s · consent ${run.consent ? 'given' : 'not given'}`
+            : 'no model ran'
+        }
       >
         <dl>
-          <dt>Inference requested</dt>
-          <dd>{run.requested === 'on_device' ? 'on this device' : 'in the cloud'}</dd>
-          <dt>Model</dt>
-          <dd>{run.model ?? 'none'}</dd>
-          <dt>Cloud allowed for this case</dt>
-          <dd>{run.cloudAllowed ? 'yes' : 'no'}</dd>
-          <dt>Consent to send evidence to the cloud</dt>
-          <dd>{run.consent ? 'given' : 'not given; nothing was sent'}</dd>
-          <dt>Inference preference (SDK mode)</dt>
-          <dd>{run.sdkMode}</dd>
-          <dt>Latency</dt>
-          <dd>{run.latencyMs === null ? 'not recorded' : `${run.latencyMs} ms`}</dd>
-          <dt>Network during run</dt>
-          <dd>
-            {run.onlineAtStart ? 'online' : 'offline'} at start,{' '}
-            {run.onlineAtEnd ? 'online' : 'offline'} at end
-          </dd>
+          {run ? (
+            <>
+              <dt>Inference requested</dt>
+              <dd>{run.requested === 'on_device' ? 'on this device' : 'in the cloud'}</dd>
+              <dt>Model</dt>
+              <dd>{run.model ?? 'none'}</dd>
+              <dt>Cloud allowed for this case</dt>
+              <dd>{run.cloudAllowed ? 'yes' : 'no'}</dd>
+              <dt>Consent to send evidence to the cloud</dt>
+              <dd>{run.consent ? 'given' : 'not given; nothing was sent'}</dd>
+              <dt>Inference preference (SDK mode)</dt>
+              <dd>{run.sdkMode}</dd>
+              <dt>Latency</dt>
+              <dd>{run.latencyMs === null ? 'not recorded' : `${run.latencyMs} ms`}</dd>
+              <dt>Network during run</dt>
+              <dd>
+                {run.onlineAtStart ? 'online' : 'offline'} at start,{' '}
+                {run.onlineAtEnd ? 'online' : 'offline'} at end
+              </dd>
+            </>
+          ) : (
+            <>
+              <dt>Proposal written by</dt>
+              <dd>the Project Studio team, not a model</dd>
+              <dt>Model</dt>
+              <dd>none: no model ran</dd>
+              <dt>Cloud</dt>
+              <dd>not used: nothing was sent</dd>
+            </>
+          )}
           <dt>Case file</dt>
           <dd>{report.case.fileName ?? 'built-in case'}</dd>
           {report.case.source && (
@@ -195,27 +232,29 @@ export function ReportView({
           )}
           <dt>SHA-256 of the case</dt>
           <dd className="hash">{report.case.sha256}</dd>
-          <dt>SHA-256 of the system prompt</dt>
-          <dd className="hash">{run.systemSha256}</dd>
-          <dt>SHA-256 of the evidence prompt</dt>
-          <dd className="hash">{run.userSha256}</dd>
+          {run && (
+            <>
+              <dt>SHA-256 of the system prompt</dt>
+              <dd className="hash">{run.systemSha256}</dd>
+              <dt>SHA-256 of the evidence prompt</dt>
+              <dd className="hash">{run.userSha256}</dd>
+            </>
+          )}
         </dl>
       </Sub>
 
       <Sub title="All evidence" status={`${report.evidence.length} events`}>
-        <p className="hint">
-          Every event the model was given, with the original record where the case file holds it.
-        </p>
+        <p className="hint">{w.evidence}</p>
         <EventList events={report.evidence} />
       </Sub>
 
-      <Sub title="Raw model output">
+      <Sub title={w.raw}>
         <pre>{report.raw}</pre>
       </Sub>
 
       <Sub title="Limits of verification">
         <ul>
-          {LIMITS.map((limit) => (
+          {limitsFor(report.author).map((limit) => (
             <li key={limit}>{limit}</li>
           ))}
         </ul>
@@ -233,7 +272,7 @@ function VerdictCount({ verdict, count }: { verdict: Verdict; count: number }) {
   )
 }
 
-function FindingItem({ finding: f }: { finding: ReportFinding }) {
+function FindingItem({ finding: f, claimBy }: { finding: ReportFinding; claimBy: string }) {
   return (
     <li className={`finding ${f.verdict}`}>
       <div>
@@ -241,7 +280,7 @@ function FindingItem({ finding: f }: { finding: ReportFinding }) {
         <strong>Finding {f.number}</strong> <span className="hint">· {f.type}</span>
       </div>
       <p>
-        <span className="hint">Claim, written by the model:</span> {f.claim}
+        <span className="hint">{claimBy}</span> {f.claim}
       </p>
       {f.note && <p className="hint">{f.note}</p>}
       {f.reasons.length > 0 && (
@@ -278,12 +317,12 @@ function FindingItem({ finding: f }: { finding: ReportFinding }) {
 
 // Without consent the only mode is LOCAL_MODE, so anything but on_device there
 // is a fault. After consent either source is legitimate; the note says why.
-function sourceClass({ run }: Report): string {
+function sourceClass(run: NonNullable<Report['run']>): string {
   if (run.sdkMode === LOCAL_MODE) return run.inferenceSource === 'on_device' ? 'ok' : 'fail'
   return 'ok'
 }
 
-function sourceNote({ run }: Report): string {
+function sourceNote(run: NonNullable<Report['run']>): string {
   if (run.sdkMode === LOCAL_MODE) return run.inferenceSource === 'on_device' ? '' : ' (unexpected)'
   if (run.inferenceSource !== 'on_device') return ''
   return run.sdkMode === InferenceMode.PREFER_IN_CLOUD

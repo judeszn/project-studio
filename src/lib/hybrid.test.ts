@@ -1,6 +1,15 @@
 import { InferenceMode } from 'firebase/ai'
 import { describe, expect, it } from 'vitest'
-import { LOCAL_MODE, NO_PROMPT_API, investigate, sendWithConsent, type Engine, type RunMode } from './hybrid'
+import {
+  CLOUD_DATA_TERMS,
+  GEMINI_TERMS_URL,
+  LOCAL_MODE,
+  NO_PROMPT_API,
+  investigate,
+  sendWithConsent,
+  type Engine,
+  type RunMode,
+} from './hybrid'
 
 // The router, with a fake engine that records every run and what it would
 // send. hybrid-sdk.test.ts checks the modes themselves against the real SDK.
@@ -113,5 +122,35 @@ describe('sendWithConsent', () => {
     const engine = fakeEngine({ availability: ['unavailable'] })
     await investigate(engine, 'on_device', PROMPT)
     expect(sentToCloud(engine)).toBe(false)
+  })
+})
+
+describe('the consent prompt discloses the free Gemini tier', () => {
+  it('says Google may use what is sent, people may read it, and not to send sensitive data', () => {
+    expect(CLOUD_DATA_TERMS).toMatch(/free tier of the Gemini Developer API/)
+    expect(CLOUD_DATA_TERMS).toMatch(/Google may use what you send to improve its products/)
+    expect(CLOUD_DATA_TERMS).toMatch(/human reviewers may read it/)
+    expect(CLOUD_DATA_TERMS).toMatch(/Do not send sensitive, confidential or personal information/)
+    expect(GEMINI_TERMS_URL).toBe('https://ai.google.dev/gemini-api/terms')
+  })
+})
+
+describe('consent is asked before every cloud send, not only the first', () => {
+  it('after a consented send, the next cloud request asks again and sends nothing until consent', async () => {
+    const engine = fakeEngine()
+    expect(await investigate(engine, 'in_cloud', PROMPT)).toMatchObject({ kind: 'consent' })
+    await sendWithConsent(engine, 'cloud_requested', PROMPT)
+    expect(engine.runs).toEqual([InferenceMode.PREFER_IN_CLOUD])
+    // The router keeps no memory of the earlier consent.
+    expect(await investigate(engine, 'in_cloud', PROMPT)).toMatchObject({ kind: 'consent' })
+    expect(engine.runs).toEqual([InferenceMode.PREFER_IN_CLOUD])
+  })
+
+  it('the same holds when Nano is unavailable each time', async () => {
+    const engine = fakeEngine({ availability: ['downloadable', 'downloadable'] })
+    expect(await investigate(engine, 'on_device', PROMPT)).toMatchObject({ kind: 'consent' })
+    await sendWithConsent(engine, 'unavailable', PROMPT)
+    expect(await investigate(engine, 'on_device', PROMPT)).toMatchObject({ kind: 'consent' })
+    expect(engine.runs).toEqual([InferenceMode.PREFER_ON_DEVICE])
   })
 })

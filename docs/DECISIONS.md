@@ -1166,6 +1166,82 @@ version, unconfirmed independently); device emulation not knowingly enabled,
 but a user-agent override was active, cause unknown; Gemini Nano on-device;
 cloud not used. To be resolved before the next recorded demonstration.
 
+### Analyst-authored worked example and free-tier consent disclosure (owner's approval, built 2026-11-14)
+
+Why: across both live runs on the demo case (cloud and Nano), no finding was
+Rejected or Contradicted, so a judge might never see the checks catch a
+claim. The worked example shows all four outcomes without pretending a model
+produced them.
+
+- **Analyst-authored worked example (no AI)**, its own button. It opens the
+  demo case and checks a proposal the Project Studio team wrote
+  (`src/data/worked-example.ts`), seven findings: two Verified (the denied
+  logons; the success after them), one Contradicted (that success called
+  denied), three Rejected (a Kerberos ticket called a logon; a denial of
+  `fin-clerk-14` attributed to `fin-clerk-04`; an event, E21, not in the
+  evidence) and one Unchecked (the overall pattern, as `other`). 12 of 18
+  events stay uncited.
+- **Same code.** `buildWorkedExample` runs `verifyProposal` and the same
+  report assembly as `buildReport`; a test checks that its findings,
+  verdicts, reasons, uncited events and proposal equal those of the same text
+  in a model run record.
+- **Never presented as a model result.** The report carries
+  `author: 'analyst'` and no run. Page and export say "No model ran" at the
+  top, label every claim and the proposal "written by the Project Studio
+  team", show "How it was made" (no model, nothing sent) instead of "How it
+  ran", and offer no run record. Export title "Worked example
+  (analyst-authored, no model ran)", file name
+  `demo-goldshadow-auth.analyst-authored-example.report.html`. A model run's
+  report carries none of these labels. Starting a real run removes the
+  example from the page. No run record is made, so it cannot reach the LANL
+  evaluation tools.
+- **Consent disclosure.** Before every send to the cloud the prompt now says:
+  "This app uses the free tier of the Gemini Developer API. Under Google's
+  terms for it, Google may use what you send to improve its products, and
+  human reviewers may read it. Do not send sensitive, confidential or
+  personal information: use synthetic data, such as the demo case.", with a
+  link to the Gemini API terms (`CLOUD_DATA_TERMS` in `src/lib/hybrid.ts`;
+  `docs/DEPLOYMENT_READINESS.md`).
+- The synthetic note no longer says "this run", since the example is not one.
+
+Evidence. 267 of 267 tests in 18 files before the review (9 new in
+`src/data/worked-example.test.ts`, 1 in `src/lib/hybrid.test.ts`); `tsc -b`,
+`eslint .` and the build clean. In the browser pane: the button opened the
+example with the demo case; verdicts Verified, Verified, Contradicted,
+Rejected, Rejected, Rejected, Unchecked, each with its reason; no run-record
+button; no request to Google. Export: the analyst-authored file name and
+title, "No model ran", seven verdict badges, none of the model labels, no
+script. Pressing "Investigate on this device" removed the example and,
+with Nano not downloaded, showed the consent prompt with the disclosure and
+the terms link; "Keep on this device" sent nothing. 375 px: no horizontal
+scroll. No model call was made while building it.
+
+Final review before commit (owner's three requirements):
+
+- **Separation.** In `src/App.tsx` a run record is built only after a model
+  returns or fails (`finish`, `failed`); the worked-example path sets a result
+  with no record, and the report view then offers none. The LANL evaluation
+  reads only run records or a model's raw output for a LANL case. Labels come
+  from each report's own `author`; nothing is shared between reports. Every
+  run starts by clearing the result. Tests: no run and no record; a model
+  report built right after the example carries none of its labels, on the
+  page or in the file.
+- **Causes.** Changing each failing finding in only the thing the check
+  objects to makes it pass: E21 replaced by an existing denied logon of that
+  account (E08); `fin-clerk-04` replaced by `fin-clerk-14`, the account E09
+  records; `denied_logon` on E10 replaced by `logon`. So E21 fails because it
+  is not in the evidence, and the misattribution because E09 is another
+  account.
+- **Consent every time.** The router keeps no memory of consent: every cloud
+  request returns "needs consent", and the only send is the Send button's
+  handler. Tests: after a consented send, the next request asks again and
+  sends nothing. In the browser, on the demo case: asked and declined (0
+  model requests); asked again and sent (1 request, report with model labels
+  and a run-record button, no example labels); asked again after that send,
+  declined (still 1). That was one more cloud call on synthetic data.
+
+273 of 273 tests in 18 files after the review (6 added).
+
 ### LANL logons, logoffs and finding types (owner's decisions, built 2026-11-11)
 
 Why: 80% of LANL logons are Network, 0.2% Interactive. Calling every LogOn a
