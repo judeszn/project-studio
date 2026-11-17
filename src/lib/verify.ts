@@ -153,10 +153,11 @@ export function extractAccounts(text: string): string[] {
 
 // LANL identities, in the shapes LANL's data and documentation show:
 // de-identified users and machine accounts with a domain ("U748@DOM1",
-// "C625$@DOM1"), local accounts whose domain is a computer ("U8777@C583"),
+// "C625$@DOM1"), local accounts whose domain is a computer ("U<n>@C<n>"),
 // the well-known SYSTEM account ("SYSTEM@C653"), and bare users, machine
-// accounts or computers ("U748", "C625$", "C17693"). A domain of "?" is one
-// LANL did not record ("U10582@?", found in the data 2026-11-12): it is kept
+// accounts or computers ("U748", "C625$", "C17693"). Named examples are from
+// LANL's published documentation. A domain of "?" is one LANL did not record
+// ("U<n>@?", found in the data 2026-11-12): it is kept
 // as written and matches only "?", never another domain. Known limit: other
 // well-known accounts LANL left readable (its documentation names "Local
 // Service") are not recognised until the data shows how they are written.
@@ -171,6 +172,43 @@ export function extractLanlIdentities(text: string): string[] {
 // Every identity a text names, in the form it was written.
 const identitiesIn = (text: string) => [...extractAccounts(text), ...extractLanlIdentities(text)]
 
+// Clock times written to the second ("09:14:52"), zero-padded. A finding that
+// quotes seconds is held to them: 09:14:52 is not 09:14:10, though both fall
+// in the minute 09:14.
+const SECONDS = /\b(\d{1,2}):(\d{2}):(\d{2})\b/g
+
+export function extractSecondTimes(text: string): string[] {
+  return [...text.matchAll(SECONDS)].map(([, h, m, s]) => `${h.padStart(2, '0')}:${m}:${s}`)
+}
+
+// Computer names in the shape the evidence writes them: capitals ending in
+// digits, optionally after hyphenated parts ("WKS318", "FINSRV1", "DC1",
+// "MGMT-PC1"). LANL computers ("C17693") are LANL identities and checked as
+// such. A name written straight after "@" is the domain of an account, which
+// the account check covers. Known limit: other capitals ending in digits
+// ("RC4", "SHA256") read as computer names, so a finding naming one fails
+// closed.
+const COMPUTER = /(?<![\w@-])(?:[A-Z][A-Za-z]*-)*[A-Z]{2,}\d+(?![\w-])/g
+const COMPUTER_ANYWHERE = /(?<![\w-])(?:[A-Z][A-Za-z]*-)*[A-Z]{2,}\d+(?![\w-])/g
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// The computers a text names, in capitals, each once. A name the evidence
+// already holds is found in any case ("finsrv1"); `known` is that list.
+export function extractComputers(text: string, known: Iterable<string> = []): string[] {
+  const found = (text.match(COMPUTER) ?? []).map((c) => c.toUpperCase())
+  for (const name of known) {
+    if (new RegExp(`(?<![\\w@-])${escapeRegExp(name)}(?![\\w-])`, 'i').test(text)) found.push(name)
+  }
+  return [...new Set(found)]
+}
+
+// The computers evidence text vouches for, domains of accounts included.
+const computersOf = (event: LogEvent) =>
+  (`${event.actor} ${event.target} ${event.detail}`.match(COMPUTER_ANYWHERE) ?? []).map((c) =>
+    c.toUpperCase(),
+  )
+
 // What evidence text vouches for: each identity it names and, for a LANL
 // principal, its bare name too, so "U748" is known when the evidence has
 // "U748@DOM1". A principal written in full must match in full: "U748@DOM2"
@@ -183,6 +221,7 @@ const identityKind = (id: string) => (/^c\d+$/.test(id) ? 'computer' : 'account'
 // An event's own time, plus any time quoted in its detail (a statement may
 // refer to an earlier moment).
 const timesOf = (event: LogEvent) => [event.time, ...extractTimes(event.detail)]
+const secondTimesOf = (event: LogEvent) => extractSecondTimes(`${event.time} ${event.detail}`)
 
 // The identities an event vouches for: who acted, on what, and anyone in the
 // detail.
@@ -190,13 +229,15 @@ const accountsOf = (event: LogEvent) =>
   knownIdentitiesIn(`${event.actor} ${event.target} ${event.detail}`)
 
 // Every finding must cite at least one event, every cited event must exist,
-// and every time or identity (GS-03 account, LANL user or computer) a finding
-// names must belong to an event it cites. Free text outside findings may only
+// and every time (to the second when the finding quotes seconds), identity
+// (GS-03 account, LANL user or computer) and computer name a finding names
+// must belong to an event it cites. Free text outside findings may only
 // mention events, times and identities that are in the evidence.
 export function checkProposal(proposal: IncidentProposal, events: LogEvent[]): Problem[] {
   const byId = new Map(events.map((e) => [e.id, e]))
   const allTimes = new Set(events.flatMap(timesOf))
   const allAccounts = new Set(events.flatMap(accountsOf))
+  const allComputers = [...new Set(events.flatMap(computersOf))]
   const problems: Problem[] = []
 
   const checkMentionedIds = (path: string, text: string) => {
@@ -242,8 +283,16 @@ export function checkProposal(proposal: IncidentProposal, events: LogEvent[]): P
     }
     checkMentionedIds(path, finding.claim)
 
+    // A time quoted to the second is checked to the second; the rest of the
+    // claim, to the minute.
+    const citedSeconds = new Set(cited.flatMap(secondTimesOf))
+    for (const time of extractSecondTimes(finding.claim)) {
+      if (!citedSeconds.has(time)) {
+        problems.push({ path, problem: `mentions ${time}, which is not a time in the events it cites` })
+      }
+    }
     const citedTimes = new Set(cited.flatMap(timesOf))
-    for (const time of extractTimes(finding.claim)) {
+    for (const time of extractTimes(finding.claim.replace(SECONDS, ' '))) {
       if (!citedTimes.has(time)) {
         problems.push({ path, problem: `mentions ${time}, which is not a time in the events it cites` })
       }
@@ -255,6 +304,12 @@ export function checkProposal(proposal: IncidentProposal, events: LogEvent[]): P
           path,
           problem: `mentions ${identityKind(id)} ${id}, which is not in the events it cites`,
         })
+      }
+    }
+    const citedComputers = new Set(cited.flatMap(computersOf))
+    for (const computer of extractComputers(finding.claim, allComputers)) {
+      if (!citedComputers.has(computer)) {
+        problems.push({ path, problem: `mentions computer ${computer}, which is not in the events it cites` })
       }
     }
   })

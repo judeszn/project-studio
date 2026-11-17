@@ -13,12 +13,16 @@ import {
   checkProposal,
   checkSupport,
   extractAccounts,
+  extractComputers,
   extractEventIds,
   extractLanlIdentities,
+  extractSecondTimes,
   extractTimes,
   parseProposal,
   verifyProposal,
 } from './verify'
+import { parseCaseFile } from './casefile'
+import SAMPLE_CASE from '../data/sample-case.json?raw'
 
 const finding = (type: FindingType, claim: string, ...event_ids: string[]): Finding => ({
   type,
@@ -462,6 +466,151 @@ describe('identities', () => {
       expect(verdict('U900748@DOM1 signed in to C901003')).toEqual([true])
       expect(verdict('U900999@DOM1 signed in to C901003')).toEqual([false])
     })
+  })
+})
+
+// The sample case. The claims below are the models' own, from the run records
+// of 15 and 17 November 2026 (docs/DECISIONS.md, 2026-11-17).
+const sample = parseCaseFile(SAMPLE_CASE)
+if (!sample.ok) throw new Error(sample.errors.join('; '))
+const SAMPLE_EVENTS = sample.case.events
+const samplePasses = (...findings: Finding[]) =>
+  verifyProposal(
+    JSON.stringify({ ...lanlProposal('unused'), findings }),
+    SAMPLE_EVENTS,
+    LANL_FINDING_TYPES,
+  ).passes
+const sampleProblems = (...findings: Finding[]) =>
+  checkProposal({ ...lanlProposal('unused'), findings }, SAMPLE_EVENTS)
+
+describe('extractSecondTimes', () => {
+  it('reads clock times to the second and zero-pads the hour', () => {
+    expect(extractSecondTimes('at 2026-03-14 09:14:52 and 9:12:04, not 09:14')).toEqual([
+      '09:14:52',
+      '09:12:04',
+    ])
+  })
+})
+
+describe('extractComputers', () => {
+  it('reads computer names in capitals ending in digits, hyphenated ones whole, each once', () => {
+    expect(extractComputers('WKS318 to FINSRV1 via DC1; MGMT-PC1 and Account-PC1; WKS318 again')).toEqual([
+      'WKS318',
+      'FINSRV1',
+      'DC1',
+      'MGMT-PC1',
+      'ACCOUNT-PC1',
+    ])
+  })
+
+  it('ignores accounts, event IDs, LANL identities, domains, status codes and addresses', () => {
+    expect(
+      extractComputers(
+        'fin-clerk-04 in E10; U900748@DOM1 on C917693; status 0xC000006A; 10.20.4.77; NTLM; Windows event 4624',
+      ),
+    ).toEqual([])
+  })
+
+  it('finds a name the evidence holds in any case', () => {
+    expect(extractComputers('logon to finsrv1', ['FINSRV1'])).toEqual(['FINSRV1'])
+    expect(extractComputers('logon to finsrv1')).toEqual([])
+  })
+})
+
+describe('computers named in a finding', () => {
+  it('rejects a server the cited event does not name (Nano, 15 Nov, finding 7)', () => {
+    // E16 is a denied logon to FILESRV1 from BKPSRV1.
+    const claim = 'Network logon to FINSRV1 from BKPSRV1 was denied due to account restriction.'
+    expect(sampleProblems(finding('denied_logon', claim, 'E16'))).toEqual([
+      { path: 'findings[0]', problem: 'mentions computer FINSRV1, which is not in the events it cites' },
+    ])
+    expect(samplePasses(finding('denied_logon', claim, 'E16'))).toEqual([false])
+  })
+
+  it('rejects the wrong computer even when the type rule is met (Nano, 17 Nov, findings 7 and 8)', () => {
+    // E03 is a service logon at BKPSRV1; E13 an interactive logon at WKS107.
+    const backup = finding('logon', 'svc-backup-01 successfully logged on to FILESRV1 at 08:02:40, indicating routine backup activity.', 'E03')
+    const clerk = finding('logon', 'Fin-clerk-04 performed a logon to FINSRV1 from WKS107 at 09:40:05.', 'E13')
+    expect(sampleProblems(backup, clerk)).toEqual([
+      { path: 'findings[0]', problem: 'mentions computer FILESRV1, which is not in the events it cites' },
+      { path: 'findings[1]', problem: 'mentions computer FINSRV1, which is not in the events it cites' },
+    ])
+    expect(samplePasses(backup, clerk)).toEqual([false, false])
+    expect(checkSupport({ ...lanlProposal('unused'), findings: [backup, clerk] }, SAMPLE_EVENTS).map((s) => s.status)).toEqual([
+      'supported',
+      'supported',
+    ])
+  })
+
+  it('accepts computers the cited events name, as target, source or in the detail, in any case', () => {
+    const right = [
+      finding('denied_logon', 'Network logon to FILESRV1 from BKPSRV1 was denied due to account restriction.', 'E16'),
+      finding('logon', 'Successful network logon for fin-clerk-04 from workstation WKS318 at 2026-03-14 09:14:52.', 'E10'),
+      finding('logon', 'fin-clerk-04 logged on interactively at wks107 at 09:40:05.', 'E13'),
+    ]
+    expect(sampleProblems(...right)).toEqual([])
+    expect(samplePasses(...right)).toEqual([true, true, true])
+  })
+
+  it('rejects a computer that is in no event', () => {
+    expect(sampleProblems(finding('logon', 'fin-clerk-04 logged on to FINSRV2 at 09:14:52.', 'E10'))).toEqual([
+      { path: 'findings[0]', problem: 'mentions computer FINSRV2, which is not in the events it cites' },
+    ])
+  })
+
+  it('leaves GS-03 device names to the evidence they appear in', () => {
+    const ok = proposal({ findings: [finding('sign_in', 'adm-ops-01 signed in from MGMT-PC1', 'E01')] })
+    expect(checkProposal(ok, GS03_EVENTS)).toEqual([])
+    const wrong = proposal({ findings: [finding('sign_in', 'adm-ops-01 signed in from HR-PC1', 'E01')] })
+    expect(checkProposal(wrong, GS03_EVENTS)).toEqual([
+      { path: 'findings[0]', problem: 'mentions computer HR-PC1, which is not in the events it cites' },
+    ])
+  })
+
+  it('leaves LANL domains to the account check', () => {
+    expect(lanlProblems('U900582@DOM1 logged on to C901252', 'E05')).toEqual([
+      { path: 'findings[0]', problem: 'mentions account u900582@dom1, which is not in the events it cites' },
+    ])
+    expect(lanlProblems('U900748 of domain DOM1 signed in to C901003', 'E01')).toEqual([])
+  })
+})
+
+describe('times quoted to the second', () => {
+  it('rejects seconds that differ from the cited event, though the minute matches (Nano, 17 Nov, finding 2)', () => {
+    // E09 is at 09:14:10; 09:14:52 is E10, which the finding does not cite.
+    const claim = 'Fin-clerk-04 successfully logged on to FINSRV1 at 09:14:52, after several failed attempts.'
+    expect(sampleProblems(finding('denied_logon', claim, 'E06', 'E07', 'E08', 'E09'))).toEqual([
+      { path: 'findings[0]', problem: 'mentions 09:14:52, which is not a time in the events it cites' },
+    ])
+  })
+
+  it('accepts exact seconds, dated or not, and still checks a time quoted to the minute', () => {
+    const exact = finding(
+      'denied_logon',
+      'Repeated denied network logons for fin-clerk-04 due to bad passwords at 2026-03-14 09:12:04, 2026-03-14 09:12:31, and 09:13:02.',
+      'E06',
+      'E07',
+      'E08',
+    )
+    expect(sampleProblems(exact)).toEqual([])
+    expect(samplePasses(exact)).toEqual([true])
+    expect(sampleProblems(finding('denied_logon', 'Denied logons from 09:12 to 09:14.', 'E06', 'E09'))).toEqual([])
+    expect(sampleProblems(finding('denied_logon', 'A denied logon at 09:15.', 'E09'))).toEqual([
+      { path: 'findings[0]', problem: 'mentions 09:15, which is not a time in the events it cites' },
+    ])
+  })
+
+  it('reports a wrong time quoted to the second once', () => {
+    expect(sampleProblems(finding('denied_logon', 'A denied logon at 09:15:10.', 'E09'))).toEqual([
+      { path: 'findings[0]', problem: 'mentions 09:15:10, which is not a time in the events it cites' },
+    ])
+  })
+
+  it('reads LANL elapsed times to the second', () => {
+    expect(lanlProblems('U900748@DOM1 signed in at elapsed 17:54:44', 'E01')).toEqual([])
+    expect(lanlProblems('U900748@DOM1 signed in at elapsed 17:54:45', 'E01')).toEqual([
+      { path: 'findings[0]', problem: 'mentions 17:54:45, which is not a time in the events it cites' },
+    ])
   })
 })
 

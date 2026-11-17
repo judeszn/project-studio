@@ -517,7 +517,7 @@ computer":
 - 749 lines, all 4 fields, no `?`, sorted by time, 150,885 to 2,557,047 s
   (dataset days 2 to 30, so the last 28 days have no red-team events).
 - 715 distinct lines. 12 lines repeat (up to 9 times, at the same second).
-- 104 users. 722 lines are `@DOM1`. 27 are local accounts (`U8777@C583`), where the domain is the destination computer.
+- 104 users. 722 lines are `@DOM1`. 27 are local accounts (`U<n>@C<n>`), where the domain is the destination computer. _(Account name replaced 2026-11-17 for publication.)_
 - 4 source computers: C17693 on 701 lines, C22409 on 26, C19932 on 19, C18025 on 3. 301 destinations. No line has source equal to destination.
 - Heaviest days: day 9 (273 lines) and day 13 (209).
 
@@ -1386,9 +1386,10 @@ run on the synthetic file: 8 events, Day 1 to Day 2, TGS as "service ticket".
 ### LANL identity check (2026-11-11)
 
 The account check now also reads LANL identities, in the shapes the data
-and LANL's documentation show: `U748@DOM1` and `U8777@C583` (red-team file:
+and LANL's documentation show: `U748@DOM1` and `U<n>@C<n>` (red-team file:
 722 and 27 lines), `C625$@DOM1` and `SYSTEM@C653` (documentation examples),
 and bare `U748`, `C625$`, `C17693`. Matching ignores case, as for GS-03.
+_(Local account name replaced 2026-11-17 for publication.)_
 
 - Every identity a finding names must be in an event it cites; every identity
   in the explanation or actions must be in the evidence. Unknown ones are
@@ -1601,6 +1602,12 @@ on this case; it does not measure how.
 This is the first live run on the sample to produce Rejected and
 Contradicted verdicts.
 
+> **Superseded in part (2026-11-17):** not all of Nano's failures were caught.
+> One of its two verified findings (finding 7, on E16) names FINSRV1, while
+> E16 is a logon to FILESRV1; the verifier did not check computer names. With
+> the corrected verifier this run has 1 verified finding, not 2. The record is
+> unchanged. See "Verifier: computer names and seconds" below.
+
 ### Navigation, run identity and the overview (built 2026-11-15 to 2026-11-16)
 
 - The logo returns to the overview and keeps the open case; browser back and
@@ -1691,7 +1698,8 @@ identical to the deployed preview's. `.nvmrc` holds `24`.
   and `U<n>`; each replacement is marked in place. Kept for reproducibility:
   case IDs, computer names, and the identity format examples taken from
   LANL's own documentation, which also appear in `src/lib/verify.ts`. No raw
-  LANL record is in the repository.
+  LANL record is in the repository. _(Incomplete; superseded by "LANL
+  identifiers: publication review completed", 2026-11-17, below.)_
 - **Ignored by git:** `.firebase/` (deploy cache), `.claude/` (local tool
   settings), `review-screenshots/` (pre-Phase B screenshots, one of them
   diagnostic). The screenshots stay on the owner's machine.
@@ -1706,3 +1714,131 @@ The Phase A rename (2026-11-14) also changed the name of the source file the
 sample case's original records cite, from `goldshadow-demo-auth.csv` to
 `infopro-sample-auth.csv`. The events, line numbers and raw records are
 byte-identical to the previous version (checked 2026-11-17).
+
+### Sample case in production, one run per path (2026-11-17)
+
+First production release of `0b5417d` to `project-studio-4c811.web.app`
+(owner's approval, 2026-11-17); served files checked byte-identical to the
+local build by SHA-256. Run by the owner in desktop Chrome 157 on the Mac.
+Records are on the owner's machine, backed up read-only beside those of
+2026-11-15; not published.
+
+| | Cloud | On device |
+| --- | --- | --- |
+| Record SHA-256 | `2db005f5…1f314296` | `28d9cb34…605e3cc4` |
+| Where (SDK), mode | `in_cloud`, `prefer_in_cloud`, consent given | `on_device`, `only_on_device`, no consent |
+| Model | `gemini-3.5-flash-lite` | Gemini Nano (Chrome built-in) |
+| Latency | 4.2 s | 86.7 s |
+| Findings | 3 | 8 |
+| Verified / Rejected / Contradicted / Unchecked (as recorded) | 3 / 0 / 0 / 0 | 1 / 1 / 0 / 6 |
+| Classification (proposal) | Undetermined, Low | Credential Compromise, Medium |
+
+Same case hash and byte-identical prompts as the runs of 2026-11-15; the
+verifier of `0b5417d`, re-run on each raw output, gives exactly the recorded
+verification. The cloud run completing shows the App Check exchange
+succeeded in production. Nano typed seven of its eight findings `other`
+(no rule, never verified); one of them repeats another and is Rejected.
+
+### Verifier: computer names and seconds (owner's approval, 2026-11-17)
+
+**Defect.** Reading the production Nano record found claims the verifier
+could not catch:
+
+- Finding 7 says svc-backup-01 logged on to FILESRV1; the cited E03 is a
+  logon at BKPSRV1. Finding 8 says fin-clerk-04 logged on to FINSRV1 from
+  WKS107; the cited E13 is a logon at WKS107. Both were typed `other`, so
+  Unchecked; typed `logon`, as the prompt asks, both would have been
+  verified, because the verifier did not check the computers a claim names.
+- Finding 2 quotes 09:14:52 (E10) but cites E06 to E09. Times were compared
+  to the minute, and E09 is 09:14:10, so the time check passed.
+- The same gap had already produced a wrong verdict: on 2026-11-15, Nano's
+  finding 7, "Network logon to FINSRV1 from BKPSRV1 was denied due to
+  account restriction", cites E16, a denied logon to FILESRV1. It is recorded
+  as Verified.
+
+**Fix** (`src/lib/verify.ts`), in the same fail-closed form as the account
+check:
+
+- Every computer a finding names must appear in an event it cites (actor,
+  target or detail). Computer names are capitals ending in digits, hyphenated
+  ones whole (`WKS318`, `DC1`, `MGMT-PC1`); a name the evidence holds is also
+  found in lower case. A name written straight after `@` is an account's
+  domain and is left to the account check. Known limit: other capitals ending
+  in digits (`RC4`, `SHA256`) read as computer names, so a finding naming one
+  fails closed.
+- A time quoted to the second must match a time in a cited event to the
+  second; a time quoted to the minute is checked to the minute, as before. A
+  wrong time is reported once. Seconds are read from an event's time field
+  as well as its detail: a case file whose time field holds seconds its
+  detail does not repeat used to reject even an exact quote of that time,
+  and now accepts it. No case in the repository or on the owner's machine
+  has that shape.
+- Free text outside findings is checked as before.
+
+14 tests added, using the models' own claims from both runs; no existing
+test changed. 293 of 293 pass on Node 24.22.3. Old and new verifiers were
+also compared on 40,000 generated findings over the sample and GS-03
+evidence: the new one never passes a finding the old one failed, and every
+problem the old one reported is still reported (a wrong time quoted to the
+second, now in its own words); 300 findings the old one passed now fail,
+each for a computer not in its cited events or a wrong second (`RC4`, the
+known limit, was put in the generator on purpose). The comparison uses a
+fixed seed and is kept with the run records on the owner's machine
+(`verifier-comparison-2026-11-17/run.sh`, not in the repository): it builds
+the old verifier from `0b5417d` and the new one from the working tree, and
+also re-checks the six stored records. Two runs gave byte-identical output.
+
+**Every stored record, re-verified** (the verifier of `0b5417d` reproduces
+each record's verification exactly; records unchanged):
+
+Verdicts are Verified / Rejected / Contradicted / Unchecked, as the report
+counts them.
+
+| Record | As recorded | With the fix | What changes |
+| --- | --- | --- | --- |
+| Sample, cloud, 2026-11-15 | 3 / 0 / 0 / 0 | 3 / 0 / 0 / 0 | nothing |
+| Sample, Nano, 2026-11-15 | 2 / 2 / 1 / 3 | **1 / 3 / 1 / 3** | finding 7 (FINSRV1, not in E16): Verified to Rejected; finding 5, already Rejected (it cites event IDs that do not exist), gets two more reasons (WKS318, FINSRV1) |
+| Sample, cloud, 2026-11-17 | 3 / 0 / 0 / 0 | 3 / 0 / 0 / 0 | nothing |
+| Sample, Nano, 2026-11-17 | 1 / 1 / 0 / 6 | **1 / 3 / 0 / 4** | findings 7 (FILESRV1) and 8 (FINSRV1): Unchecked to Rejected; finding 2, already Rejected as a repeat, also gets 09:14:52 |
+| LANL h211, Nano, 2026-11-12 | 1 / 4 / 1 / 2 | 1 / 4 / 1 / 2 | two Rejected findings' wrong times are now reported to the second; same findings, same faults |
+| LANL h658, Nano, 2026-11-12 | 6 / 0 / 0 / 0 | 6 / 0 / 0 / 0 | nothing |
+
+Events covered by verified findings on the 2026-11-15 Nano run: 4 of 18, not
+5. The LANL evaluation's verdicts are unchanged.
+
+**What this shows.** The model made mistakes; the first verifier missed some
+of them and marked one as Verified. "Verified" means the checks listed in the
+README pass, not that every word of a claim is right; code still does not read
+the rest of a claim's wording, the explanation or the classification. The
+prompt was not changed.
+
+### LANL identifiers: publication review completed (2026-11-17)
+
+The R6/R7 entry above said every LANL identity kept in the repository was a
+format example from LANL's documentation. A full scan of every tracked file
+showed two that were not: a local account from the red-team file
+(`U<n>@C<n>`, in this file twice and in a `src/lib/verify.ts` comment) and
+the unrecorded-domain account (`U<n>@?`), which R7 had replaced here but not
+in the `verify.ts` comment. Both are now replaced, marked in place here; the
+change to `verify.ts` is to a comment only.
+
+Sources were checked against LANL's dataset page
+(`csr.lanl.gov/data/cyber1/`, read 2026-11-17), whose example lines include
+`C625$@DOM1`, `U147@DOM1`, `SYSTEM@C653` (auth) and `U748@DOM1`, `C17693`
+(red team). The dataset is released under CC0. Data-derived names were
+checked against the owner's local copy only; nothing was uploaded.
+
+| Identifiers left in the repository | Where | Source | Decision |
+| --- | --- | --- | --- |
+| `U748@DOM1`, `U748`, `C625$@DOM1`, `C625$`, `SYSTEM@C653`, `C17693` | `src/lib/verify.ts` comments, this file, `docs/HACKATHON_MVP_SCOPE.md` (`C17693`) | LANL's documentation | Kept: format examples |
+| `U748@DOM2` | `src/lib/verify.ts` comment, this file | Made up from a documentation example, to show a mismatch | Kept |
+| `lanl-c17693-h211`, `lanl-c17693-h658` | this file, `docs/HACKATHON_MVP_SCOPE.md` | Case IDs (source computer, hour) | Kept for reproducibility (R7) |
+| `C22409`, `C19932`, `C18025`, `C4832` | this file | Red-team source computers in the data | Kept: computer names (R7) |
+| `C17693` with invented accounts and destinations | `tools/lanl/measure-nano-budget.js` | Documentation computer; the rest generated | Kept |
+| `U22@DOM1`, `C480$@DOM1`, `ANONYMOUS LOGON@C586`, `SYSTEM@C1` | `tools/lanl/candidates.test.ts` | Common accounts in the authentication data, none in the red-team file | Kept: test inputs for account types, not tied to a label |
+| `U900…`, `C90…`, `U123456`, `C1` to `C10` | tests | Synthetic, in LANL's shapes | Kept |
+
+Named accounts tied to the red-team labels or to the evaluation case appear
+only as LANL itself publishes them (`U748@DOM1`) or as `account A`,
+`account B`, `U<n>`. No raw LANL record, case file, run record or label file
+is in the repository.
