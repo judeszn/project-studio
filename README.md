@@ -89,8 +89,9 @@ All inference goes through Firebase AI Logic (`firebase` 13.2.0,
 
 `src/lib/verify.ts` parses the model's output strictly and fails closed. For
 each finding it checks that the cited events exist, are of the kind and
-outcome the finding's type states, and that the times and accounts the
-finding quotes belong to them. It also catches repeated findings.
+outcome the finding's type states, and that the times (to the second when the
+finding quotes seconds), accounts and computers the finding names belong to
+them. It also catches repeated findings.
 
 | Verdict | Meaning |
 | --- | --- |
@@ -100,9 +101,12 @@ finding quotes belong to them. It also catches repeated findings.
 | Unchecked | Type `other`, which has no rule. Never counted as verified |
 
 Every event keeps its source file, line and original record, so each verdict
-can be traced to the material supplied. Code does not read the wording of a
-claim, the explanation or the classification; they are shown as the model's
-proposal. Events no finding cites are listed, so nothing is left out silently.
+can be traced to the material supplied. The verifier checks cited event IDs
+and selected details extracted from each finding, including times, accounts
+and computer names, against the cited records. It does not assess the broader
+meaning or truth of the claim, the explanation or the classification; these
+remain the model's proposal. Events no finding cites are listed, so nothing is
+left out silently.
 
 ### Reports and run records
 
@@ -120,12 +124,13 @@ later.
 | Evaluated | One Nano run on each of two cases from the public LANL dataset, against a deterministic baseline (below) |
 | Planned, not built | Other intake (API, webhooks, a local collector, CSV, XLSX, PDF); other investigation types (phishing, endpoint, network, cloud); persistent investigation history |
 
-Known limits: verification checks the evidence for a finding, not that an
-attack occurred, and not the wording of a claim, the explanation or the
-classification. Text inside event fields reaches the model as evidence; a
-crafted field could steer what the model proposes, and checks on structured
-fields would not detect a misleading sentence. This has not been tested with
-a prompt-injection fixture.
+Known limits: verification checks cited evidence and selected details
+extracted from a finding; it does not establish that an attack occurred or
+assess the broader meaning of a claim, the explanation or the classification.
+Text inside event fields reaches the model as evidence; a crafted field could
+steer what the model proposes, and checks on structured fields would not
+detect a misleading sentence. This has not been tested with a
+prompt-injection fixture.
 
 Planned work follows `docs/PRODUCT_DIRECTION.md`: accept evidence broadly,
 verify narrowly. Only system records can support a verified finding;
@@ -150,6 +155,17 @@ successful logon as a denied one; code caught each of these. Its
 classification is not supported by its verified findings; code does not
 check classifications, and the page shows it as the model's proposal.
 
+**Correction (17 November 2026).** One of Nano's two verified findings above
+was wrong: it says a logon to FINSRV1 was denied, but the event it cites, E16,
+is a denied logon to FILESRV1. The verifier then checked times and accounts
+but not computer names, so it marked the finding Verified. A production run
+on 17 November showed the same kind of error, and the verifier now checks
+every computer a finding names, and times to the second when a finding quotes
+seconds. Re-checked with it, this Nano run has **1 / 3 / 1 / 3**; both cloud
+runs remain 3 of 3. The table shows the run as it was recorded; the record is
+unchanged. Details and every re-checked record: `docs/DECISIONS.md`
+(2026-11-17).
+
 **LANL evaluation, 12 November 2026** (`docs/DECISIONS.md`). One Nano run,
 on-device, on each of two cases built from LANL's public authentication data
 by a selection rule frozen before any run; labels applied only after both
@@ -172,10 +188,10 @@ to the cloud, and none is in this repository.
 ## Tested configuration
 
 Gemini Nano has run on one machine: an Apple M1 Mac (16 GB, macOS 15.7.1) in
-desktop Chrome 156, with no `chrome://flags` entries enabled. Other hardware,
-operating systems and Chrome versions have not been tested, and Nano's
-availability depends on the device. The cloud path has been tested in the
-same browser.
+desktop Chrome 156 and 157, with no `chrome://flags` entries enabled. Other
+hardware, operating systems and Chrome versions have not been tested, and
+Nano's availability depends on the device. The cloud path has been tested in
+the same browser.
 
 ## Run it locally
 
@@ -206,7 +222,7 @@ console; register it under App Check, then set it in
 **Checks:**
 
 ```bash
-npm test        # 279 tests
+npm test        # 293 tests
 npm run lint
 npm run build   # type check and production build
 ```
