@@ -700,33 +700,35 @@ Case ids name the computer and hour only, not the role.
   red team, label, truth, attack, compromise, malicious, suspicious,
   evaluation, control.
 - Both cases: every event is an NTLM network logon from C17693, source user
-  equal to destination user. Evaluation: 19 accounts (U3635@DOM1 on 14
+  equal to destination user. Evaluation: 19 accounts (account A on 14
   events), 36 destinations, 23 success and 20 denied. Control: 3 accounts
-  (U66@DOM1 on 5), 7 destinations, 6 success and 1 denied.
+  (account B on 5), 7 destinations, 6 success and 1 denied. _(Account names
+  replaced 2026-11-17 for publication; see that date's entry.)_
 - Prompt size in the measurement script's row format: 15,949 characters for
   43 events and 2,720 for 7, against 18,851 for the 50 synthetic events
   measured to fit.
-- **Found while checking:** 3 evaluation events name `U10582@?` (domain not
-  recorded). The LANL identity check reads no identity from `U10582@?`, so a
-  finding naming bare `U10582` would be rejected though the evidence names it,
-  and a finding naming `U10582@?` would not be checked at all. Not changed;
+- **Found while checking:** 3 evaluation events name `U<n>@?` (domain not
+  recorded). The LANL identity check reads no identity from `U<n>@?`, so a
+  finding naming bare `U<n>` would be rejected though the evidence names it,
+  and a finding naming `U<n>@?` would not be checked at all. _(Account name
+  replaced by `U<n>` 2026-11-17 for publication.)_ Not changed;
   for the owner's decision before any baseline or model run.
 
 No labels applied, no baseline run, no model has seen LANL data.
 
 ### LANL identity with an unrecorded domain (owner's decision, built 2026-11-12)
 
-Found in the evaluation case (`U10582@?` on 3 events), fixed before any
-baseline or model run. `?` is a domain LANL did not record: kept exactly as
+Found in the evaluation case (`U<n>@?` on 3 events; account name replaced by
+`U<n>` 2026-11-17 for publication), fixed before any baseline or model run. `?` is a domain LANL did not record: kept exactly as
 written, never inferred, never a wildcard. `src/lib/verify.ts` now reads
 `U…@?` as a principal; as for any principal, its bare name is vouched for
 too, and a principal written in full must match in full.
 
-| A finding names | Cited event has `U10582@?` |
+| A finding names | Cited event has `U<n>@?` |
 | --- | --- |
-| `U10582@?` | accepted |
-| `U10582` | accepted |
-| `U10582@DOM1` | rejected: the domain is not in the evidence |
+| `U<n>@?` | accepted |
+| `U<n>` | accepted |
+| `U<n>@DOM1` | rejected: the domain is not in the evidence |
 | an unrelated account | rejected |
 
 Also tested: `U900748@?` is rejected when the evidence has `U900748@DOM1`
@@ -1200,8 +1202,8 @@ produced them.
   terms for it, Google may use what you send to improve its products, and
   human reviewers may read it. Do not send sensitive, confidential or
   personal information: use synthetic data, such as the demo case.", with a
-  link to the Gemini API terms (`CLOUD_DATA_TERMS` in `src/lib/hybrid.ts`;
-  `docs/DEPLOYMENT_READINESS.md`).
+  link to the Gemini API terms (`CLOUD_DATA_TERMS` and `GEMINI_TERMS_URL` in
+  `src/lib/hybrid.ts`).
 - The synthetic note no longer says "this run", since the example is not one.
 
 Evidence. 267 of 267 tests in 18 files before the review (9 new in
@@ -1241,6 +1243,49 @@ Final review before commit (owner's three requirements):
   declined (still 1). That was one more cloud call on synthetic data.
 
 273 of 273 tests in 18 files after the review (6 added).
+
+### Product presentation, Phase A (owner's design decisions, built 2026-11-14)
+
+Owner's decisions: tabs (Evidence, Run, Findings, Report); headline
+"Investigate security events. Keep control of your evidence."; the sample
+case belongs to the owner's organisation and product (PHANG Group, InfoPro),
+labelled as simulated; the motto "AI proposes. Code verifies. The analyst
+decides." Presentation only: no change to the verifier, report builder, run
+records, prompts, consent routing, LANL tooling or evaluation.
+
+- **Sample case renamed.** `src/data/demo-case.json` became
+  `src/data/sample-case.json`, case `sample-infopro-auth`, source "SIMULATED
+  sample case: InfoPro authentication events, PHANG Group", citation saying
+  the events, accounts and systems are invented and InfoPro has had no such
+  incident. Events, accounts, hosts, IDs and original records are unchanged,
+  so the verification tests keep their meaning. New SHA-256
+  `fde5a5b25dd25fc8…`; the cloud and Nano runs recorded above were made on the
+  previous version (`ed97a731…`). CLAUDE.md records the exception to its
+  "no real organisations" rule.
+- **The page.** A top bar (Project Studio by PHANG Group) with two status
+  chips, on-device AI and cloud AI, that open the technical details. A
+  landing view when no case is open: headline, three entry points (open a
+  case file; the sample; the worked example) and the three steps. A case
+  workspace: case header with a "Simulated data" badge for the sample, and
+  four tabs. Run offers "On this device" and "In the cloud" as two cards; the
+  cloud card is off for a case file until allowed; consent and its
+  disclosure are unchanged. Findings shows verdict tiles and an evidence
+  coverage bar above the findings; exports moved to the Report tab.
+- **GS-03 is no longer offered on the page.** It stays in `src/data/gs03.ts`
+  as the regression fixture its tests pin, unchanged.
+- **Unchanged wording that tests pin:** report sections, verdict labels, the
+  worked example's labels, the consent disclosure. Changed: the motto (now
+  "Code verifies"), the synthetic note ("Simulated data: …"), the sample's
+  names in two tests.
+
+Evidence. 273 of 273 tests; `tsc -b`, `eslint .` and the build clean. In the
+browser pane (no model call): landing at 1280 px and 375 px; sample opened on
+Evidence; Run cards; on-device run with Nano not downloaded asked before the
+cloud and "Keep on this device" sent nothing; the cloud card asked and was
+declined (0 model requests); empty Findings state; worked example opened on
+Findings with tiles 2, 3, 1, 1 and coverage 4 of 18; Report tab shows the
+export and no run record; 375 px with no horizontal scroll and all four tabs
+visible; dark mode legible.
 
 ### LANL logons, logoffs and finding types (owner's decisions, built 2026-11-11)
 
@@ -1396,7 +1441,7 @@ Untested. Either way `parseProposal` re-checks the shape and fails closed.
 **Vite + React + TypeScript single-page app, not Next.js.** On-device inference
 and offline use are entirely client-side; a server framework adds nothing here.
 
-**Vite 6 and Vitest 3.** The build machine has Node 20.15.0. Vite 8 and Vitest 5
+**Superseded 2026-11-17 (Node 24, below): Vite 6 and Vitest 3 stay; the Node constraint is gone.** **Vite 6 and Vitest 3.** The build machine has Node 20.15.0. Vite 8 and Vitest 5
 need Node 20.19+ / 22.12+. Upgrading Node is the owner's call.
 
 **Superseded 2026-11-11 (above).** **`ONLY_ON_DEVICE` for the offline path.** `PREFER_ON_DEVICE` falls back to the
@@ -1448,25 +1493,216 @@ scenario. None of this judges the classification.
 **The model's classification and confidence are shown as a proposal, never as
 verified.** Code has no way to confirm them. The analyst decides.
 
-**The model only sees parsed events, never raw logs.** The on-device context is
+**Superseded in part 2026-11-12 (case-file loader): events now come from case files and the sample, not a fixed list; the model still sees parsed events only.** **The model only sees parsed events, never raw logs.** The on-device context is
 small, so selection and parsing happen in code first. Today the eleven events
 are fixed; a real parser is not built.
 
-**Firestore's built-in offline persistence for case records.** Not built yet.
+**Superseded 2026-11-16: not built. Runs are kept in the page's memory for the session only, and nothing is stored; persistent history is planned (`docs/PRODUCT_DIRECTION.md`).** **Firestore's built-in offline persistence for case records.** Not built yet.
 No conflict detection planned.
 
 ## Open questions
 
-- Official #BuildHybridAI rules: eligibility, individual or organisation entry,
-  reuse of prior work and prior research, submission requirements, judging
-  weights. Not published as of 2026-11-11 13:53 WAT.
-- Whether 29 to 42 seconds per proposal is usable, and whether it holds on the
-  demo hardware.
-- Licence. The owner enters as an individual; no licence file has been added yet.
-- Custom domain `project.phang.store`. Needs a Hosting deployment first.
-- What the two models do together. Today they answer the same question
+- **Answered 2026-11-12:** the Official Rules, read and summarised in
+  `docs/HACKATHON_MVP_SCOPE.md`. Official #BuildHybridAI rules: eligibility,
+  individual or organisation entry, reuse of prior work and prior research,
+  submission requirements, judging weights. Not published as of 2026-11-11
+  13:53 WAT.
+- **Still open; observed 42 to 100 s on LANL cases and 63 to 88 s on the
+  sample (2026-11-15/16).** Whether 29 to 42 seconds per proposal is usable,
+  and whether it holds on the demo hardware.
+- **Answered 2026-11-12:** Apache-2.0 (`LICENSE`, `NOTICE`). Licence. The owner
+  enters as an individual; no licence file has been added yet.
+- **Decided 2026-11-17:** `project.phang.store` (below); not yet configured.
+  Custom domain `project.phang.store`. Needs a Hosting deployment first.
+- **Partly answered 2026-11-16:** the overview lists every run of the session,
+  cloud and on-device, with their verdicts; a side-by-side comparison is not
+  built. What the two models do together. Today they answer the same question
   separately. Candidates, none built: the device proposes and the analyst may
   send the same evidence to the cloud for a second proposal, shown side by side
   with both sets of code checks; the cloud model is offered when the device
   model fails or its findings fail the checks; `PREFER_ON_DEVICE` for visitors
   whose browser has no Prompt API, labelled as cloud. Owner's decision.
+
+## Entries after 2026-11-14 (appended)
+
+### Product presentation, Phase B (owner's approval, built 2026-11-14)
+
+Presentation only; the verifier, report builder, run records, prompts,
+consent routing and evaluation are unchanged.
+
+- Dark mode: text on filled buttons and verdict badges uses an `--on-accent`
+  token, dark on the light dark-mode accent.
+- Findings in the owner's order: overall result; the four verdict counts;
+  evidence coverage; each finding; then the model's explanation and
+  classification. Classification and confidence are shown once. Verdict
+  definitions fold under "What the verdicts mean"; how it ran, the evidence,
+  raw output and limits fold under "Evidence and technical detail". The
+  verification caveat folds behind the motto; it remains in full under
+  "Limits of verification".
+- Finding cards lead with the claim. A verified finding's cited evidence
+  starts folded; a failed one shows its reasons, then its evidence, open.
+- Landing in two columns on wide screens, with the worked example's real
+  verdicts (2, 3, 1, 1) labelled as the worked example.
+- Status chips have short labels on a phone. The cloud chip says "App Check
+  configured", not "protected": the token exchange is proven only by a request.
+- Evidence as a table on wide screens and stacked rows on a phone; each row
+  opens to the event's detail and original record.
+- A run in progress shows the stage, the time elapsed and what to expect; the
+  SDK reports no progress, so none is invented.
+
+Evidence: 275 of 275 tests (two new: the Findings order, and folded or open
+evidence by verdict); type check, lint and build clean; checked at 1280 px,
+375 px and in dark mode in the browser pane. On the preview channel, two Nano
+runs on the sample in the owner's Chrome during this testing: 70.2 s, 3 of 8
+verified; 88.1 s, 5 of 8 verified; both `on_device`, `only_on_device`, no
+consent. Their run records were not downloaded.
+
+### App Check on the hosted preview (2026-11-14 to 2026-11-15)
+
+The App Check registration for the web app held a reCAPTCHA site key that was
+not from this Google Cloud project, so every token exchange was refused and
+cloud requests failed. The owner registered the project's own score-based
+reCAPTCHA Enterprise key through the official App Check API, and the build
+carries the same key. Enforcement was not changed and App Check was never
+disabled. Exchanges from browsers under automation were then refused on
+attestation; from the owner's own Chrome the exchange succeeded and the
+consented cloud run below completed. Internal diagnostic notes are kept out
+of the repository.
+
+### Sample case on the hosted preview, one run per path (2026-11-15)
+
+Run in the owner's desktop Chrome 156 on the Mac. Both records report a
+desktop Mac user agent, so the user-agent override noted on 2026-11-13 was not
+active for these runs. Records are on the owner's machine.
+
+| | Cloud | On device |
+| --- | --- | --- |
+| Record SHA-256 | `31779ff9…d8e89489` | `959ecee2…73bab5b0` |
+| Where (SDK), mode | `in_cloud`, `prefer_in_cloud`, consent given | `on_device`, `only_on_device`, no consent |
+| Model | `gemini-3.5-flash-lite` | Gemini Nano (Chrome built-in) |
+| Latency | 16.5 s | 63.2 s |
+| Findings | 3 | 8 |
+| Verified / Rejected / Contradicted / Unchecked | 3 / 0 / 0 / 0 | 2 / 2 / 1 / 3 |
+| Events covered by verified findings | 5 of 18 | 5 of 18 |
+| Classification (proposal) | Undetermined, Low | Credential Compromise, Medium |
+
+Checked independently of the page: each record's case hash is the sample
+file's; its system and evidence prompts are byte-identical to what the source
+produces and match their recorded hashes; re-running the verifier on the raw
+output gives exactly the recorded verification.
+
+Nano's failures, all caught by code: four event IDs without their leading
+zero (`E6` for `E06`), which are not in the evidence; a repeated finding; a
+successful logon cited as a `denied_logon` (contradicted). Its classification
+is not supported by its two verified findings; code does not check
+classifications. One run each: this shows the two models behave differently
+on this case; it does not measure how.
+
+This is the first live run on the sample to produce Rejected and
+Contradicted verdicts.
+
+### Navigation, run identity and the overview (built 2026-11-15 to 2026-11-16)
+
+- The logo returns to the overview and keeps the open case; browser back and
+  forward move between the overview and the case's tabs (`#/`,
+  `#/case/<tab>`); after a reload a case address shows the overview.
+- Each report names its run (model, where it ran, start time in UTC) on the
+  page, in the exported file's title and header, and names that run's record
+  file. Two runs never share a report title (test).
+- The Run tab states that the two models do not perform the same, and that
+  every finding is checked whichever runs.
+- Overview: counters, recent investigations, findings needing review, AI
+  engines, evidence sources and investigation types. Every number is counted
+  from runs made in the page; with none, it says so. Planned sources and
+  types are labelled Planned. Runs are kept in memory for the session only;
+  the browser warns before a page holding runs is closed or reloaded.
+
+Evidence: 279 of 279 tests (`src/Dashboard.test.tsx` adds three); type check,
+lint and build clean; navigation driven in the browser pane; the overview
+rendered at 1440 px and 375 px, empty and with the two records above.
+Preview channel `stage2-preview` deployments: `f06d0d050a5db0ec`
+(2026-11-15) and `b2be0f16171b016a` (2026-11-16); each served exactly the
+built files (same names and SHA-256). The production channel was not
+deployed.
+
+### Product direction: Option C (owner's decision, 2026-11-16 to 2026-11-17)
+
+Project Studio investigates technical incidents only. Intake may later accept
+material broadly, but only validated system records can support a verified
+finding; documents, screenshots and testimony frame questions. Recorded in
+`docs/PRODUCT_DIRECTION.md`, with the conversion rules. Nothing of the
+broader intake is built.
+
+### Node.js 24 (owner's approval, 2026-11-17)
+
+The installed Firebase SDK packages (`@firebase/ai` 3.0.0, `@firebase/app`
+0.16.5 and others) declare `node >=24.12.0`; Node 20 reached end of life in
+April 2026. Node 24.22.3 (LTS) was installed from nodejs.org into the owner's
+home directory, checked against nodejs.org's SHA-256 list; the system Node and
+shell configuration are unchanged. On Node 24, with `package.json` and the
+lockfile unchanged and no reinstall: no declared engine requirement unmet,
+279 of 279 tests, type check, lint and build clean, and the build output
+identical to the deployed preview's. `.nvmrc` holds `24`.
+
+### Release preparation (2026-11-17)
+
+- Secret scan, read-only: every version of every committed file and every
+  file to be committed. No App Check debug token, Firebase API key, private
+  key or other credential pattern; the only env file ever committed is
+  `.env.example`, placeholders only.
+- To do before the release commit (owner's decisions): ignore `.firebase/`
+  and `.claude/`; commit `.firebaserc`; keep the internal deployment notes out
+  of the repository; review the LANL identifiers in this file; leave out the
+  outdated screenshots.
+- Hosting: the custom-domain list for the site is empty (Firebase Hosting
+  API, read 2026-11-17), public DNS has no record for either candidate
+  hostname, and the production channel serves Firebase's "Site Not Found":
+  it has never had a release.
+- Production domain decided: `project.phang.store`, already in the
+  reCAPTCHA key's allowed domains. Only the records Firebase generates, on the
+  `project` host, will be added; the root sites and mail records are not
+  touched. Nothing configured yet.
+- README rewritten for the current product, with the pre-existing work, the
+  results as they came out and the tested configuration.
+- Still to decide (owner): an offline on-device run for the video
+  (recommended), and the prompt-injection fixture (recommended to cut; the
+  README states the limit).
+
+### Release review: R6 and R7 (owner's decisions, 2026-11-17)
+
+- **Offline on-device run: approved.** To be done on the final hosted URL
+  after the production deployment, in the owner's own Chrome, with the
+  network turned off at the OS and the Network tab visible. Expected
+  evidence: a run record with `onlineAtStart` and `onlineAtEnd` false,
+  `on_device`, `only_on_device`, and no successful request during the run;
+  App Check or reCAPTCHA background requests that fail while offline are
+  expected and show that nothing left the machine. If Nano fails, the
+  failure is the result. Unit tests already assert that the on-device path
+  makes no network call (`src/lib/hybrid-sdk.test.ts`).
+- **Prompt-injection fixture: cut.** It was planned and never built; no code
+  or test is removed. The README's known-limits statement stays. Existing
+  related coverage: model and evidence text is rendered as text and escaped
+  in the export, and malformed output is rejected. A case file's
+  `modelNotes` do reach the system prompt; the page shows them before a run
+  (`docs/CASE_FILE.md`).
+- **LANL account names: replaced** where they tied named accounts to the
+  red-team-labelled evaluation case (2026-11-12 "LANL cases built") and in
+  the unrecorded-domain example (2026-11-12), with `account A`, `account B`
+  and `U<n>`; each replacement is marked in place. Kept for reproducibility:
+  case IDs, computer names, and the identity format examples taken from
+  LANL's own documentation, which also appear in `src/lib/verify.ts`. No raw
+  LANL record is in the repository.
+- **Ignored by git:** `.firebase/` (deploy cache), `.claude/` (local tool
+  settings), `review-screenshots/` (pre-Phase B screenshots, one of them
+  diagnostic). The screenshots stay on the owner's machine.
+- **Run records of 2026-11-15:** backed up read-only, outside the
+  repository, byte-identical to the originals; not published. Whether they
+  belong in the public repository is decided after a review of their
+  contents.
+
+### Clarification: the sample case's source file name (2026-11-17)
+
+The Phase A rename (2026-11-14) also changed the name of the source file the
+sample case's original records cite, from `goldshadow-demo-auth.csv` to
+`infopro-sample-auth.csv`. The events, line numbers and raw records are
+byte-identical to the previous version (checked 2026-11-17).

@@ -7,8 +7,8 @@ analyst allows the cloud for that case and then consents to the send.
 
 `npm run lanl -- case` writes this format from the LANL authentication data.
 Any tool can write it. The reader is `src/lib/casefile.ts`. A complete
-example is the synthetic demo case, `src/data/demo-case.json`, which the page
-opens with **Load demo case (synthetic)**.
+example is the simulated sample case, `src/data/sample-case.json`, which the page
+opens with **Try the sample investigation**.
 
 ## Format
 

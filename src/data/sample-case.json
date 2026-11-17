@@ -1,11 +1,11 @@
 {
   "spec": {
-    "id": "demo-goldshadow-auth"
+    "id": "sample-infopro-auth"
   },
   "source": {
-    "dataset": "SYNTHETIC demonstration case: Goldshadow Finance, a fictional organisation",
-    "citation": "Written for Project Studio. Not real events, people, systems or organisations.",
-    "file": "goldshadow-demo-auth.csv"
+    "dataset": "SIMULATED sample case: InfoPro authentication events, PHANG Group",
+    "citation": "Simulated for Project Studio. The events, accounts and systems are invented; InfoPro has had no such incident.",
+    "file": "infopro-sample-auth.csv"
   },
   "modelNotes": [],
   "events": [
@@ -23,7 +23,7 @@
         "detail": "2026-03-14 07:58:12. Interactive logon at WKS101. Windows event 4624; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 2,
         "raw": "2026-03-14T07:58:12Z,4624,adm-ops-01,WKS101,WKS101,10.20.1.11,Interactive,Kerberos,0x0"
       }
@@ -41,7 +41,7 @@
         "detail": "2026-03-14 07:58:13. Kerberos ticket-granting ticket issued by DC1. Windows event 4768; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 3,
         "raw": "2026-03-14T07:58:13Z,4768,adm-ops-01,DC1,WKS101,10.20.1.11,-,Kerberos,0x0"
       }
@@ -60,7 +60,7 @@
         "detail": "2026-03-14 08:02:40. Scheduled backup service started. Windows event 4624; authentication Negotiate; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 4,
         "raw": "2026-03-14T08:02:40Z,4624,svc-backup-01,BKPSRV1,BKPSRV1,10.20.9.5,Service,Negotiate,0x0"
       }
@@ -79,7 +79,7 @@
         "detail": "2026-03-14 08:15:03. Interactive logon at WKS204. Windows event 4624; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 5,
         "raw": "2026-03-14T08:15:03Z,4624,hr-lead-02,WKS204,WKS204,10.20.2.24,Interactive,Kerberos,0x0"
       }
@@ -97,7 +97,7 @@
         "detail": "2026-03-14 08:15:09. Kerberos service ticket for the file share on FILESRV1. Windows event 4769; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 6,
         "raw": "2026-03-14T08:15:09Z,4769,hr-lead-02,FILESRV1,WKS204,10.20.2.24,-,Kerberos,0x0"
       }
@@ -116,7 +116,7 @@
         "detail": "2026-03-14 09:12:04. Network logon to FINSRV1 from WKS318, 10.20.4.77. Failure: bad password. Windows event 4625; authentication NTLM; status 0xC000006A."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 7,
         "raw": "2026-03-14T09:12:04Z,4625,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0xC000006A"
       }
@@ -135,7 +135,7 @@
         "detail": "2026-03-14 09:12:31. Network logon to FINSRV1 from WKS318, 10.20.4.77. Failure: bad password. Windows event 4625; authentication NTLM; status 0xC000006A."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 8,
         "raw": "2026-03-14T09:12:31Z,4625,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0xC000006A"
       }
@@ -154,7 +154,7 @@
         "detail": "2026-03-14 09:13:02. Network logon to FINSRV1 from WKS318, 10.20.4.77. Failure: bad password. Windows event 4625; authentication NTLM; status 0xC000006A."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 9,
         "raw": "2026-03-14T09:13:02Z,4625,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0xC000006A"
       }
@@ -173,7 +173,7 @@
         "detail": "2026-03-14 09:14:10. Network logon to FINSRV1 from WKS318, 10.20.4.77. Failure: bad password. Windows event 4625; authentication NTLM; status 0xC000006A."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 10,
         "raw": "2026-03-14T09:14:10Z,4625,fin-clerk-14,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0xC000006A"
       }
@@ -192,7 +192,7 @@
         "detail": "2026-03-14 09:14:52. Network logon to FINSRV1 from WKS318, 10.20.4.77. Success. Windows event 4624; authentication NTLM; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 11,
         "raw": "2026-03-14T09:14:52Z,4624,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0x0"
       }
@@ -210,7 +210,7 @@
         "detail": "2026-03-14 09:15:20. Kerberos service ticket for FINSRV1, requested from WKS318. Windows event 4769; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 12,
         "raw": "2026-03-14T09:15:20Z,4769,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,-,Kerberos,0x0"
       }
@@ -229,7 +229,7 @@
         "detail": "2026-03-14 09:31:47. Logoff from FINSRV1 of the session from WKS318. Windows event 4634; authentication NTLM; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 13,
         "raw": "2026-03-14T09:31:47Z,4634,fin-clerk-04,FINSRV1,WKS318,10.20.4.77,Network,NTLM,0x0"
       }
@@ -248,7 +248,7 @@
         "detail": "2026-03-14 09:40:05. Interactive logon at WKS107. Windows event 4624; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 14,
         "raw": "2026-03-14T09:40:05Z,4624,fin-clerk-04,WKS107,WKS107,10.20.4.17,Interactive,Kerberos,0x0"
       }
@@ -267,7 +267,7 @@
         "detail": "2026-03-14 10:05:33. Remote desktop logon to FINSRV1 from WKS101. Windows event 4624; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 15,
         "raw": "2026-03-14T10:05:33Z,4624,adm-ops-01,FINSRV1,WKS101,10.20.1.11,RemoteInteractive,Kerberos,0x0"
       }
@@ -286,7 +286,7 @@
         "detail": "2026-03-14 10:22:18. Logoff from FINSRV1 of the remote desktop session from WKS101. Windows event 4634; authentication Kerberos; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 16,
         "raw": "2026-03-14T10:22:18Z,4634,adm-ops-01,FINSRV1,WKS101,10.20.1.11,RemoteInteractive,Kerberos,0x0"
       }
@@ -305,7 +305,7 @@
         "detail": "2026-03-14 11:00:00. Network logon to FILESRV1 from BKPSRV1. Failure: account restriction. Windows event 4625; authentication Negotiate; status 0xC000006E."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 17,
         "raw": "2026-03-14T11:00:00Z,4625,svc-backup-01,FILESRV1,BKPSRV1,10.20.9.5,Network,Negotiate,0xC000006E"
       }
@@ -323,7 +323,7 @@
         "detail": "2026-03-14 12:30:41. Workstation WKS204 locked. Windows event 4800; authentication none; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 18,
         "raw": "2026-03-14T12:30:41Z,4800,hr-lead-02,WKS204,WKS204,10.20.2.24,-,none,0x0"
       }
@@ -341,7 +341,7 @@
         "detail": "2026-03-14 12:47:15. Workstation WKS204 unlocked. Windows event 4801; authentication none; status 0x0."
       },
       "provenance": {
-        "file": "goldshadow-demo-auth.csv",
+        "file": "infopro-sample-auth.csv",
         "line": 19,
         "raw": "2026-03-14T12:47:15Z,4801,hr-lead-02,WKS204,WKS204,10.20.2.24,-,none,0x0"
       }

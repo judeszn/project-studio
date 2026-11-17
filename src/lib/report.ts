@@ -64,7 +64,7 @@ export const VERIFICATION_NOTE =
   'Verification checks each finding against the events it cites. It does not show that an attack occurred, that an account is compromised, or that the classification is right. The analyst decides.'
 
 export const SYNTHETIC_NOTE =
-  'Synthetic demonstration data: fictional events, people and systems. It shows how the checks work; it is not a measure of detection accuracy.'
+  'Simulated data: the events, accounts and systems are invented. It shows how the checks work; it is not a measure of detection accuracy.'
 
 export type Author = 'model' | 'analyst'
 
@@ -79,7 +79,7 @@ export const WORDS: Record<
 > = {
   model: {
     title: 'Investigation report',
-    motto: 'AI proposes. Code checks. The analyst decides.',
+    motto: 'AI proposes. Code verifies. The analyst decides.',
     claim: 'Claim, written by the model:',
     proposal: "The model's proposal",
     proposalNote: PROPOSAL_NOTE,
@@ -337,10 +337,20 @@ function assemble(
   }
 }
 
+// Which run a report belongs to, as the page and the exported file both name
+// it: the model, where it ran and when it started (UTC). The worked example
+// has no run, so none.
+export function runLabel(report: Report): string | null {
+  const { run } = report
+  if (!run) return null
+  const started = run.startedAt.replace('T', ' ').replace(/(\.\d+)?Z$/, ' UTC')
+  return `${run.model ?? 'no model'}, ${run.location}, started ${started}`
+}
+
 const safe = (part: string) => part.replace(/[^\w.-]+/g, '_')
 
 // "lanl-c17693-h211.on-device.20261112T221530Z.report.html", or, for the
-// worked example, "demo-goldshadow-auth.analyst-authored-example.report.html".
+// worked example, "sample-infopro-auth.analyst-authored-example.report.html".
 export const reportFileName = (report: Report) =>
   [
     safe(report.case.id),
@@ -427,10 +437,11 @@ export function reportHtml(report: Report, generatedAt: string): string {
   const w = WORDS[report.author]
   const c = report.case
   const p = report.proposal
-  const title = `${w.title}: ${c.id}`
+  const label = runLabel(report)
+  const title = `${w.title}: ${c.id}${label ? `, ${label}` : ''}`
   const sections = [
     `<h1>${esc(title)}</h1>`,
-    `<p class="muted">Project Studio. Report generated ${esc(generatedAt)}.${run ? ` Run started ${esc(run.startedAt)}.` : ''}</p>`,
+    `<p class="muted">Project Studio. Report generated ${esc(generatedAt)}.${run ? ` It covers one run, started ${esc(run.startedAt)}; that run's record is ${esc(reportFileName(report).replace(/\.report\.html$/, '.run.json'))}.` : ''}</p>`,
     run ? '' : `<div class="banner noModel"><strong>${esc(NO_MODEL_NOTE)}</strong></div>`,
     `<div class="banner"><strong>${esc(w.motto)}</strong><br>${esc(VERIFICATION_NOTE)}</div>`,
     report.synthetic ? `<p class="warn"><strong>${esc(SYNTHETIC_NOTE)}</strong></p>` : '',

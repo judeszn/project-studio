@@ -6,7 +6,7 @@ import { SYNTHETIC_NOTE, buildReport, reportHtml } from '../lib/report'
 import type { Verdict } from '../lib/report'
 import { LANL_FINDING_TYPES } from '../lib/schema'
 import { verifyProposal } from '../lib/verify'
-import DEMO_CASE from './demo-case.json?raw'
+import DEMO_CASE from './sample-case.json?raw'
 
 // The demo case: synthetic authentication events at a fictional organisation.
 // It is checked by the same loader as any case file. What verdicts a live run
@@ -31,7 +31,7 @@ const proposal = (findings: { type: string; claim: string; event_ids: string[] }
 async function reportOf(raw: string, origin: 'demo' | 'case file' = 'demo') {
   const c = loaded()
   const record = await buildRunRecord({
-    case: { id: c.id, origin, fileName: 'demo-case.json', sha256: 'd'.repeat(64), events: c.events.length, source: c.source },
+    case: { id: c.id, origin, fileName: 'sample-case.json', sha256: 'd'.repeat(64), events: c.events.length, source: c.source },
     systemPrompt: 'system',
     prompt: 'user',
     findingTypes: LANL_FINDING_TYPES,
@@ -54,10 +54,10 @@ async function reportOf(raw: string, origin: 'demo' | 'case file' = 'demo') {
 describe('the demo case file', () => {
   it('passes the case-file loader and says it is synthetic', () => {
     const c = loaded()
-    expect(c.id).toBe('demo-goldshadow-auth')
+    expect(c.id).toBe('sample-infopro-auth')
     expect(c.events).toHaveLength(18)
-    expect(c.source.dataset).toMatch(/^SYNTHETIC/)
-    expect(c.source.citation).toMatch(/Not real events, people, systems or organisations/)
+    expect(c.source.dataset).toMatch(/^SIMULATED/)
+    expect(c.source.citation).toMatch(/invented; InfoPro has had no such incident/)
     expect(c.modelNotes).toEqual([])
   })
 
@@ -113,6 +113,6 @@ describe('results on the demo case are labelled synthetic', () => {
     expect(reportHtml(demo, 'now')).toContain(SYNTHETIC_NOTE.replace(/'/g, '&#39;'))
     const file = await reportOf(raw, 'case file')
     expect(file.synthetic).toBe(false)
-    expect(reportHtml(file, 'now')).not.toContain('Synthetic demonstration data')
+    expect(reportHtml(file, 'now')).not.toContain('Simulated data')
   })
 })

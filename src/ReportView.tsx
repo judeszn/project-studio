@@ -4,135 +4,145 @@ import { attackUrl } from './lib/attack'
 import { LOCAL_MODE } from './lib/hybrid'
 import {
   NO_MODEL_NOTE,
-  SYNTHETIC_NOTE,
   VERDICTS,
   VERDICT_LABEL,
   VERDICT_MEANING,
   VERIFICATION_NOTE,
   WORDS,
   limitsFor,
+  runLabel,
 } from './lib/report'
-import type { Report, ReportFinding, Verdict } from './lib/report'
+import type { Report, ReportFinding } from './lib/report'
 import { EventList, Problems, Sub } from './ui'
 
 // The investigation report on the page. It renders the same Report the
-// exported file does (lib/report.ts), section for section, with the same
-// labels for who wrote the proposal: a model, or, in the worked example, the
-// Project Studio team.
-
-const VERDICT_CLASS: Record<Verdict, string> = {
-  verified: 'ok',
-  rejected: 'fail',
-  contradicted: 'fail',
-  unchecked: 'warn',
-}
+// exported file does (lib/report.ts), with the same labels for who wrote the
+// proposal: a model, or, in the worked example, the Project Studio team.
+//
+// The order is the analyst's: the overall result, the verdict counts and
+// evidence coverage, then each finding, then the proposal's own explanation
+// and classification. How it ran, the evidence and the limits follow, folded
+// away but never dropped. The page shows the simulated-data notice above the
+// tabs, so it is not repeated here.
 
 export function ReportView({
   report,
   onExport,
   onRecord,
+  showActions = true,
 }: {
   report: Report
   onExport: () => void
   onRecord?: () => void // a real run only; the worked example has no run record
+  showActions?: boolean // false where the page offers exports elsewhere (the Report tab)
 }) {
-  const { run, proposal } = report
+  const { run, proposal, counts } = report
   const w = WORDS[report.author]
   const total = report.findings.length
+  const notVerified = total - counts.verified
+  const tone = !report.parsed || (total > 0 && counts.verified === 0)
+    ? 'fail'
+    : total > 0 && counts.verified === total
+      ? 'ok'
+      : 'warn'
   // On a phone the result lands below the buttons, out of sight.
   const top = useRef<HTMLElement>(null)
   useEffect(() => {
     top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
   return (
-    <section ref={top}>
-      <h2>3. {run ? 'Investigation report' : w.title}</h2>
-      {!run && (
-        <p className="banner noModel">
-          <strong>{NO_MODEL_NOTE}</strong>
-        </p>
-      )}
-      {report.synthetic && <p className="warn synthetic">{SYNTHETIC_NOTE}</p>}
-      {run && (
-        <p className={`where ${run.location === 'cloud' ? 'cloud' : 'device'}`}>{report.where}</p>
-      )}
-      <p className="banner">
-        <strong>{w.motto}</strong> {VERIFICATION_NOTE}
-      </p>
-      <div className="actions">
-        <button onClick={onExport}>Export report (HTML)</button>
-        {onRecord && (
-          <button className="secondary" onClick={onRecord}>
-            Download run record (JSON)
-          </button>
-        )}
-      </div>
-      <p className="hint">
-        {onRecord
-          ? 'Both are saved to your disk and contain the evidence. The report opens in any browser, without a network, and prints to PDF. The run record holds the prompts, their hashes and the raw output, for reproducing the run.'
-          : 'The report is saved to your disk and contains the evidence. It opens in any browser, without a network, and prints to PDF. No run record exists: no model ran.'}
-      </p>
+    <section ref={top} className="card" role="tabpanel" aria-label="Findings">
+      <h2>{run ? 'Findings' : w.title}</h2>
+      {run && <p className="meta run-label">This run: {runLabel(report)}</p>}
 
-      <dl>
-        {run && (
-          <>
-            <dt>Inference source (reported by SDK)</dt>
-            <dd className={sourceClass(run)}>
-              {run.inferenceSource}
-              {sourceNote(run)}
-            </dd>
-          </>
-        )}
-        <dt>{run ? 'Model output format (checked by code)' : 'Proposal format (checked by code)'}</dt>
-        <dd className={report.parsed ? 'ok' : 'fail'}>{report.parsed ? 'valid' : 'invalid'}</dd>
-        {proposal && (
-          <>
-            {VERDICTS.map((v) => (
-              <VerdictCount key={v} verdict={v} count={report.counts[v]} />
-            ))}
-            <dt>Events covered by verified findings (by code)</dt>
-            <dd>
-              {report.covered.length} of {report.case.events}
-            </dd>
-            <dt>Events no finding cites</dt>
-            <dd className={report.uncited.length > 0 ? 'warn' : ''}>
-              {report.uncited.length} of {report.case.events}
-            </dd>
-            <dt>{w.classification}</dt>
-            <dd>{proposal.classification}</dd>
-            <dt>{w.confidence}</dt>
-            <dd>{proposal.confidence}</dd>
-          </>
-        )}
-      </dl>
-
-      {!report.parsed && (
-        <>
-          <p className="fail">
-            {w.unreadable}: it did not match the required format, so no finding was checked and
-            every event is uncited.
+      <div className={`result is-${tone}`}>
+        {report.parsed ? (
+          <p className="result-head">
+            {total > 0 ? (
+              <>
+                <strong>
+                  {counts.verified} of {total} findings verified against the evidence they cite.
+                </strong>{' '}
+                {notVerified > 0 &&
+                  `${notVerified} ${notVerified === 1 ? 'was' : 'were'} not verified; each lists why.`}
+              </>
+            ) : (
+              <strong>The proposal contains no findings.</strong>
+            )}
           </p>
-          <Problems items={report.parseErrors} />
+        ) : (
+          <>
+            <p className="result-head">
+              <strong>{w.unreadable}.</strong>
+            </p>
+            <p>
+              It did not match the required format, so no finding was checked and every event is
+              uncited.
+            </p>
+            <Problems items={report.parseErrors} />
+          </>
+        )}
+        {run ? (
+          <p
+            className={`result-where ${run.location === 'cloud' ? 'cloud' : 'device'}${sourceClass(run) === 'fail' ? ' fail' : ''}`}
+          >
+            {report.where}
+            {sourceNote(run)}
+          </p>
+        ) : (
+          <p className="result-where analyst">{NO_MODEL_NOTE}</p>
+        )}
+        <details className="caveat">
+          <summary>{w.motto}</summary>
+          <p className="hint">{VERIFICATION_NOTE}</p>
+        </details>
+      </div>
+
+      {showActions && (
+        <>
+          <div className="actions">
+            <button onClick={onExport}>Export report (HTML)</button>
+            {onRecord && (
+              <button className="secondary" onClick={onRecord}>
+                Download run record (JSON)
+              </button>
+            )}
+          </div>
+          <p className="hint">
+            {onRecord
+              ? 'Both are saved to your disk and contain the evidence. The report opens in any browser, without a network, and prints to PDF. The run record holds the prompts, their hashes and the raw output, for reproducing the run.'
+              : 'The report is saved to your disk and contains the evidence. It opens in any browser, without a network, and prints to PDF. No run record exists: no model ran.'}
+          </p>
         </>
       )}
 
       {proposal && (
         <>
-          <Sub title={w.proposal} status="not verified" open>
-            <p className="hint">{w.proposalNote}</p>
-            <p className="label">{w.explanation}</p>
-            <p>{proposal.explanation}</p>
-            <Problems items={proposal.explanationProblems} />
-            <dl>
-              <dt>{w.classification}</dt>
-              <dd>{proposal.classification}</dd>
-              <dt>{w.confidence}</dt>
-              <dd>{proposal.confidence}</dd>
-            </dl>
-          </Sub>
+          <div className="tiles" aria-label="Verdicts, decided by code">
+            {VERDICTS.map((v) => (
+              <div key={v} className={`tile ${v}`}>
+                <span>{VERDICT_LABEL[v]}</span>
+                <strong>{counts[v]}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="hint coverage-label">
+            Evidence coverage: {report.covered.length} of {report.case.events} events cited by
+            verified findings; {report.uncited.length} cited by no finding.
+          </p>
+          <div className="coverage" aria-hidden="true">
+            <span style={{ width: `${(100 * report.covered.length) / Math.max(1, report.case.events)}%` }} />
+          </div>
 
-          <Sub title="Findings" status={`${report.counts.verified} of ${total} verified`} open>
-            <ul className="hint meanings">
+          <div className="section-head">
+            <h3>Findings</h3>
+            <span className="status">
+              {counts.verified} of {total} verified
+            </span>
+          </div>
+          <details className="legend">
+            <summary>What the verdicts mean</summary>
+            <ul className="meanings">
               {VERDICTS.map((v) => (
                 <li key={v}>
                   <span className={`verdict ${v}`}>{VERDICT_LABEL[v]}</span> {VERDICT_MEANING[v]}
@@ -140,20 +150,54 @@ export function ReportView({
               ))}
             </ul>
             <p className="hint">No check reads the wording of a claim.</p>
-            <Problems items={report.findingsProblems} />
-            <ol className="findings">
-              {report.findings.map((f) => (
-                <FindingItem key={f.number} finding={f} claimBy={w.claim} />
+          </details>
+          <Problems items={report.findingsProblems} />
+          <ol className="findings">
+            {report.findings.map((f) => (
+              <FindingItem key={f.number} finding={f} claimBy={w.claim} />
+            ))}
+          </ol>
+
+          <Sub
+            title={run ? 'AI explanation and classification' : 'Explanation and classification'}
+            status="not verified"
+            open
+          >
+            <dl>
+              <dt>{w.classification}</dt>
+              <dd>{proposal.classification}</dd>
+              <dt>{w.confidence}</dt>
+              <dd>{proposal.confidence}</dd>
+            </dl>
+            <p className="label">{w.explanation}</p>
+            <p>{proposal.explanation}</p>
+            <Problems items={proposal.explanationProblems} />
+            <p className="hint">{w.proposalNote}</p>
+          </Sub>
+
+          <Sub
+            title="Recommended actions"
+            status={`${proposal.actions.length}, ${run ? 'proposed' : 'written for the example'}, not taken`}
+          >
+            <p className="hint">{w.actions}</p>
+            <ol>
+              {proposal.actions.map((a, i) => (
+                <li key={i}>
+                  {a.text}
+                  <Problems items={a.problems} />
+                </li>
               ))}
             </ol>
           </Sub>
         </>
       )}
 
+      <p className="group-label">Evidence and technical detail</p>
+
       <Sub
         title="Events no finding cites"
         status={`${report.uncited.length} of ${report.case.events}`}
-        open={report.uncited.length > 0}
+        open={!report.parsed}
       >
         <p className="hint">
           Code does not judge whether these matter. They are listed so that nothing is left
@@ -161,23 +205,6 @@ export function ReportView({
         </p>
         {report.uncited.length > 0 ? <EventList events={report.uncited} /> : <p>None.</p>}
       </Sub>
-
-      {proposal && (
-        <Sub
-          title="Recommended actions"
-          status={`${proposal.actions.length}, ${run ? 'proposed' : 'written for the example'}, not taken`}
-        >
-          <p className="hint">{w.actions}</p>
-          <ol>
-            {proposal.actions.map((a, i) => (
-              <li key={i}>
-                {a.text}
-                <Problems items={a.problems} />
-              </li>
-            ))}
-          </ol>
-        </Sub>
-      )}
 
       <Sub
         title={run ? 'How it ran' : 'How it was made'}
@@ -190,6 +217,11 @@ export function ReportView({
         <dl>
           {run ? (
             <>
+              <dt>Inference source (reported by SDK)</dt>
+              <dd className={sourceClass(run)}>
+                {run.inferenceSource}
+                {sourceNote(run)}
+              </dd>
               <dt>Inference requested</dt>
               <dd>{run.requested === 'on_device' ? 'on this device' : 'in the cloud'}</dd>
               <dt>Model</dt>
@@ -218,6 +250,8 @@ export function ReportView({
               <dd>not used: nothing was sent</dd>
             </>
           )}
+          <dt>{run ? 'Model output format (checked by code)' : 'Proposal format (checked by code)'}</dt>
+          <dd className={report.parsed ? 'ok' : 'fail'}>{report.parsed ? 'valid' : 'invalid'}</dd>
           <dt>Case file</dt>
           <dd>{report.case.fileName ?? 'built-in case'}</dd>
           {report.case.source && (
@@ -263,34 +297,30 @@ export function ReportView({
   )
 }
 
-function VerdictCount({ verdict, count }: { verdict: Verdict; count: number }) {
-  return (
-    <>
-      <dt>Findings {VERDICT_LABEL[verdict].toLowerCase()} (by code)</dt>
-      <dd className={count > 0 ? VERDICT_CLASS[verdict] : ''}>{count}</dd>
-    </>
-  )
-}
-
+// The claim leads; the type's note and the evidence follow. A verified
+// finding's evidence starts folded; a finding that failed a check shows its
+// evidence open, beside the reasons.
 function FindingItem({ finding: f, claimBy }: { finding: ReportFinding; claimBy: string }) {
   return (
     <li className={`finding ${f.verdict}`}>
-      <div>
+      <div className="finding-head">
         <span className={`verdict ${f.verdict}`}>{VERDICT_LABEL[f.verdict]}</span>{' '}
         <strong>Finding {f.number}</strong> <span className="hint">· {f.type}</span>
       </div>
-      <p>
-        <span className="hint">{claimBy}</span> {f.claim}
-      </p>
-      {f.note && <p className="hint">{f.note}</p>}
+      <p className="claim-by">{claimBy}</p>
+      <p className="claim">{f.claim}</p>
       {f.reasons.length > 0 && (
-        <>
+        <div className="reasons">
           <p className="label">Why it is not verified</p>
           <Problems items={f.reasons} />
-        </>
+        </div>
       )}
+      {f.missing.length > 0 && (
+        <p className="fail">Cited but not in the evidence: {f.missing.join(', ')}</p>
+      )}
+      {f.note && <p className="hint type-note">{f.note}</p>}
       {f.attack && (
-        <p className="hint">
+        <p className="hint type-note">
           ATT&amp;CK reference, if this was adversary activity:{' '}
           <a href={attackUrl(f.attack.id)} target="_blank" rel="noreferrer">
             {f.attack.id} {f.attack.name}
@@ -298,7 +328,7 @@ function FindingItem({ finding: f, claimBy }: { finding: ReportFinding; claimBy:
           . A reference, not a conclusion.
         </p>
       )}
-      <details className="cited" open>
+      <details className="cited" open={f.verdict !== 'verified'}>
         <summary>
           Cited evidence: {f.cited.map((c) => c.event.id).concat(f.missing).join(', ') || 'none'}
         </summary>
@@ -308,9 +338,6 @@ function FindingItem({ finding: f, claimBy }: { finding: ReportFinding; claimBy:
           <p className="hint">No cited event is in the evidence.</p>
         )}
       </details>
-      {f.missing.length > 0 && (
-        <p className="fail">Cited but not in the evidence: {f.missing.join(', ')}</p>
-      )}
     </li>
   )
 }

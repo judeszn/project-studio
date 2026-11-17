@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildReport, esc, reportFileName, reportHtml, VERDICT_LABEL, whereItRan } from './report'
+import { buildReport, esc, reportFileName, reportHtml, runLabel, VERDICT_LABEL, whereItRan } from './report'
 import type { Report } from './report'
 import { EVENTS, MIXED, PROVENANCE, finding, output, recordFor, reportOf } from './report.fixtures'
 import { recordFileName } from './record'
@@ -182,7 +182,23 @@ describe('reportHtml: the exported file', () => {
     const page = html(await reportOf(MIXED))
     expect(page).toContain('Ran on this device: Gemini Nano. Nothing was sent to the cloud.')
     expect(page).toContain("This report contains the case's evidence.")
-    expect(page).toContain(`<title>Investigation report: synthetic-sample</title>`)
+    expect(page).toContain(
+      `<title>Investigation report: synthetic-sample, Gemini Nano (Chrome built-in), on-device, started 2026-11-13 09:00:00 UTC</title>`,
+    )
+  })
+
+  it('names its own run and that run’s record, so no two runs share a report', async () => {
+    const record = await recordFor(MIXED)
+    const report = buildReport(record, EVENTS, PROVENANCE)
+    const page = html(report)
+    expect(page).toContain(recordFileName(record))
+    const later = buildReport(
+      { ...record, execution: { ...record.execution, startedAt: '2026-11-13T10:30:00.000Z' } },
+      EVENTS,
+      PROVENANCE,
+    )
+    expect(runLabel(later)).not.toBe(runLabel(report))
+    expect(html(later)).not.toContain('<title>' + page.match(/<title>(.*?)<\/title>/)![1] + '</title>')
   })
 })
 

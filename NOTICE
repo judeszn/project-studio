@@ -27,3 +27,7 @@ Synthetic data
   GS-03 (src/data/gs03.ts) and the fixtures in tools/lanl/fixtures/ are
   invented for this project. They describe no real organisation, person or
   system.
+  The sample case (src/data/sample-case.json) and the worked example
+  (src/data/worked-example.ts) are simulated. They name the author's own
+  organisation and product, PHANG Group and InfoPro; the events, accounts and
+  systems are invented, and InfoPro has had no such incident.

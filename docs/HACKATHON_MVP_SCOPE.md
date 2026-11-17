@@ -194,12 +194,14 @@ Owner's decisions, 2026-11-12. Selection is in `docs/SELECTOR_SPEC.md`.
 | Dates | Work | Done when |
 | --- | --- | --- |
 | Nov 12 to 14 | `denied_logon`; prompt frozen; case-file loader with run records; Nano runs on both cases (owner, in Chrome); labels; comparison | Run records kept; results in `docs/DECISIONS.md` |
-| Nov 15 to 17 | Report view and export; prompt-injection fixture; results written for the README | A reader can follow the report without the app |
+| Nov 15 to 17 | Report view and export; ~~prompt-injection fixture~~ (cut 2026-11-17); results written for the README | A reader can follow the report without the app |
 | Nov 18 to 21 | Production deployment with App Check; offline run recorded; repo merged to the default branch (with approval) | Hosted app passes the Stage One table |
 | Nov 22 to 25 | README with disclosure of pre-existing work; video script, recording and upload | Video at most 3 minutes, public |
 | Nov 26 to 28 | Devpost text; clean-machine test; submit | Submitted on Nov 28 |
 
-**If time runs short, cut in this order:** prompt-injection fixture, then a
+**If time runs short, cut in this order:** prompt-injection fixture (cut
+2026-11-17, owner's decision: never implemented, and no new scope before the
+submission; the README states the limit), then a
 synthetic sample case for judges. Never cut: anything in the Stage One table,
 the on-device demonstration, the consent step, the report and its export
 (win criteria 2 and 5; changed 2026-11-12, it was second in the cut order),
@@ -225,7 +227,8 @@ hackathon.
 8. Explicit Gemini Nano and Firebase cloud inference paths.
 9. A deterministic, code-only baseline run on the same cases.
 10. One red-team-labelled LANL case and one matched control.
-11. A prompt-injection regression fixture, separate from GS-03.
+11. ~~A prompt-injection regression fixture, separate from GS-03.~~ Cut
+    2026-11-17 (owner's decision); planned for after the hackathon.
 12. Carefully validated MITRE ATT&CK references.
 13. An evidence-backed investigation report.
 14. Production deployment with App Check.
@@ -255,7 +258,9 @@ intelligence and other enterprise integrations.
 
 ## 9. Acceptance checklist
 
-An item is ticked only with evidence, named beside it.
+An item is ticked only with evidence, named beside it. Reconciled with the
+build on 2026-11-17: names updated, later evidence added in italics, and the
+production-domain items added at the end.
 
 - [x] On-device and cloud inference both through Firebase AI Logic, source
       shown per result (runs D to J, `docs/DECISIONS.md`)
@@ -311,8 +316,12 @@ An item is ticked only with evidence, named beside it.
 - [x] Labels applied after the runs; model and baseline compared with them
       (evaluation case: Nano 0 of 21 labelled covered, baseline 10 of 21;
       the control holds 3 labelled events; `docs/DECISIONS.md`)
-- [ ] Prompt-injection fixture: what is caught and what is not, documented
-- [ ] Offline on-device run shown with the network disconnected
+- [ ] ~~Prompt-injection fixture: what is caught and what is not,
+      documented.~~ _Cut 2026-11-17 (owner's decision): never implemented;
+      the README states the limit._
+- [ ] Offline on-device run shown with the network disconnected. _Approved
+      2026-11-17: on the final hosted URL after the production deployment,
+      in the owner's own Chrome, OS Wi-Fi off, Network tab visible._
 - [x] Investigation report a reader can follow without the app open, with
       export (four verdicts with reasons, cited and uncited evidence with
       original records, escaped self-contained HTML; `src/lib/report.ts`,
@@ -323,24 +332,56 @@ An item is ticked only with evidence, named beside it.
       (`src/data/demo-case.json`, 14 tests; one consented cloud run, all
       findings Verified; one on-device Nano run, 5 Verified and 3 Unchecked;
       `docs/DECISIONS.md`). Neither live run produced a Rejected or
-      Contradicted finding
+      Contradicted finding. _Since 2026-11-14 the file is
+      `src/data/sample-case.json` and the button reads **Try the sample
+      investigation**. On 2026-11-15 a Nano run on the hosted preview produced
+      2 Rejected and 1 Contradicted; the cloud run verified 3 of 3
+      (`docs/DECISIONS.md`)._
 - [x] Analyst-authored worked example showing all four verdicts, labelled
       "No model ran" on the page, in the export and its file name; same
       checks as model runs; no run record (`src/data/worked-example.ts`,
       13 tests; `docs/DECISIONS.md`)
 - [x] Consent prompt discloses the Gemini free-tier data terms before every
       send, including after an earlier consent (`CLOUD_DATA_TERMS`, 3 tests;
-      browser check; `docs/DEPLOYMENT_READINESS.md`)
+      browser check)
+- [x] Overview of the session's runs, navigation and per-run report identity
+      (`src/Dashboard.tsx`, 279 tests; `docs/DECISIONS.md`, 2026-11-16).
+      Runs are kept for the session only; persistent history is planned
+- [x] Node.js 24.12+ (`.nvmrc`), required by the installed Firebase SDK;
+      checks pass on Node 24.22.3 (`docs/DECISIONS.md`, 2026-11-17)
 - [ ] Production deployment with App Check (reCAPTCHA Enterprise), up until
-      Dec 16
-- [ ] Repository checked for secrets before pushing
+      Dec 16. _App Check verified on the preview channel by a consented cloud
+      run, 2026-11-15; production not yet deployed_
+- [ ] Repository checked for secrets before pushing. _First scan clean,
+      2026-11-17 (history and files to commit); repeat on the release commit_
 - [ ] Open-source licence: `LICENSE` (Apache-2.0) and `NOTICE` added; shows
       in GitHub's About only once pushed to the default branch
-- [ ] Work merged to the public repository's default branch
+- [ ] Work merged to the public repository's default branch. _`main` holds
+      only `01ee668`; a fast-forward merge needs no force-push. Owner's
+      decision at the release review_
 - [ ] README with run instructions, value proposition, evaluation results and
-      disclosure of pre-existing work
+      disclosure of pre-existing work. _Rewritten 2026-11-17; hosted link to
+      add once the domain is live_
 - [ ] Demo video (at most 3 minutes, public YouTube, English)
 - [ ] Devpost text description and submission, on Nov 28
+
+**Production domain: `project.phang.store`** (owner's decision, 2026-11-17;
+no DNS change, Hosting change or production deploy without approval)
+
+- [x] No custom-domain entry for the site, pending or active (Hosting API,
+      empty list), and no public DNS record for the hostname (2026-11-17)
+- [ ] Release build passes every check; secret scan clean
+- [ ] Production (`live`) deployed with approval; it serves exactly the
+      checked files (names and SHA-256)
+- [ ] `project.phang.store` added in Hosting; the records Firebase generates
+      reviewed before they are entered
+- [ ] Only those records added at GO54/WhoGoHost, on the `project` host; the
+      root site, `www` and mail (Zoho) records untouched
+- [ ] DNS propagated, domain verified, SSL certificate active
+- [ ] Over HTTPS: the page loads, `exchangeRecaptchaEnterpriseToken` returns
+      200 in a normal Chrome tab, one consented cloud run and one Nano run
+      succeed
+- [ ] README and Devpost use `https://project.phang.store`
 
 ## Risks
 

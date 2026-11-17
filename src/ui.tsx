@@ -1,31 +1,54 @@
 import type { ReactNode } from 'react'
 import type { ReportEvent } from './lib/report'
 
-// Events as the analyst reads them: the row the model was given and, for a
-// case file, the original record it came from.
+// Events as the analyst reads them: one row per event, the fields the model
+// was given, as a table on a wide screen and stacked on a phone. Each row
+// opens to the event's detail and, for a case file, the original record it
+// came from. Closed rows stay in the page, so the browser's find still
+// reaches every record.
 export function EventList({ events }: { events: ReportEvent[] }) {
   return (
-    <ol className="events">
-      {events.map(({ event: e, provenance: p }) => (
-        <li key={e.id}>
-          <div>
-            <strong>{e.id}</strong>{' '}
-            <span className="hint">
-              {e.date} {e.time} · {e.source}
-            </span>
-          </div>
-          <div>
-            {e.actor} · {e.action}: {e.target} · {e.outcome}
-          </div>
-          <div className="hint">{e.detail}</div>
-          {p && (
-            <div className="hint">
-              Original record, {p.file} line {p.line}: <code>{p.raw}</code>
-            </div>
-          )}
-        </li>
-      ))}
-    </ol>
+    <div className="evtable">
+      <div className="ev-head" aria-hidden="true">
+        <span>ID</span>
+        <span>Time</span>
+        <span>Source</span>
+        <span>Account</span>
+        <span>Action</span>
+        <span>Target</span>
+        <span>Outcome</span>
+      </div>
+      <ol className="events">
+        {events.map(({ event: e, provenance: p }) => (
+          <li key={e.id}>
+            <details>
+              <summary>
+                <strong>{e.id}</strong>
+                <span className="ev-when">
+                  {e.date} {e.time}
+                </span>
+                <span className="ev-source">{e.source}</span>
+                <span className="ev-break" aria-hidden="true" />
+                <span className="ev-actor">{e.actor}</span>
+                <span className="ev-action">{e.action}</span>
+                <span className="ev-target">{e.target}</span>
+                <span className={`ev-outcome ${e.outcome}`}>{e.outcome}</span>
+              </summary>
+              <div className="ev-body">
+                <p>{e.detail}</p>
+                {p ? (
+                  <p className="hint">
+                    Original record, {p.file} line {p.line}: <code>{p.raw}</code>
+                  </p>
+                ) : (
+                  <p className="hint">The case holds no original record for this event.</p>
+                )}
+              </div>
+            </details>
+          </li>
+        ))}
+      </ol>
+    </div>
   )
 }
 

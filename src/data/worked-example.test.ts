@@ -15,7 +15,7 @@ import {
 import type { Report } from '../lib/report'
 import { LANL_FINDING_TYPES } from '../lib/schema'
 import { verifyProposal } from '../lib/verify'
-import DEMO_CASE from './demo-case.json?raw'
+import DEMO_CASE from './sample-case.json?raw'
 import { WORKED_EXAMPLE, WORKED_EXAMPLE_TEXT } from './worked-example'
 
 // The worked example: a proposal the Project Studio team wrote about the demo
@@ -31,7 +31,7 @@ const demo = (): LoadedCase => {
 const CASE_INFO = (c: LoadedCase) => ({
   id: c.id,
   origin: 'demo' as const,
-  fileName: 'demo-case.json',
+  fileName: 'sample-case.json',
   sha256: 'e'.repeat(64),
   events: c.events.length,
   source: c.source,
@@ -166,14 +166,14 @@ describe('it is never presented as a model result', () => {
   it('the exported file says no model ran, in its title, body and file name', () => {
     const report = example()
     const html = reportHtml(report, 'now')
-    expect(html).toContain('<title>Worked example (analyst-authored, no model ran): demo-goldshadow-auth</title>')
+    expect(html).toContain('<title>Worked example (analyst-authored, no model ran): sample-infopro-auth</title>')
     expect(html).toContain('No model ran.')
     expect(html).toContain('Claim, written by the Project Studio team:')
     expect(html).toContain('none: no model ran')
     for (const modelWords of ['written by the model', "The model's proposal", 'Raw model output', 'Ran on this device', 'Ran in the cloud', 'AI proposes']) {
       expect(html).not.toContain(modelWords.replace(/'/g, '&#39;'))
     }
-    expect(reportFileName(report)).toBe('demo-goldshadow-auth.analyst-authored-example.report.html')
+    expect(reportFileName(report)).toBe('sample-infopro-auth.analyst-authored-example.report.html')
   })
 
   it('the page says no model ran and offers no run record', () => {

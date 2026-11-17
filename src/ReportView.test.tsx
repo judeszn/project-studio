@@ -36,9 +36,34 @@ describe('ReportView', () => {
     expect(html).toMatch(/Cited but not in the evidence: (<!-- -->)?E48/)
   })
 
+  it('leads with the result, then verdicts, coverage, findings and the proposal', async () => {
+    const html = page(await reportOf(MIXED))
+    const order = [
+      'class="result ',
+      'class="tiles"',
+      'Evidence coverage:',
+      '<h3>Findings</h3>',
+      'Explanation, written by the model',
+      '<h3>How it ran</h3>',
+    ].map((marker) => html.indexOf(marker))
+    expect(order.every((at) => at >= 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+    // The classification is shown once, in the proposal, not repeated above it.
+    expect(html.split('Classification (proposed by the model, not verified)')).toHaveLength(2)
+  })
+
+  it('folds the evidence of verified findings and opens it for the rest', async () => {
+    const html = page(await reportOf(MIXED))
+    const cards = html.split('<li class="finding ').slice(1)
+    for (const card of cards) {
+      const open = /<details class="cited" open="">/.test(card)
+      expect(open).toBe(!card.startsWith('verified"'))
+    }
+  })
+
   it('shows uncited events and all evidence, with the original records', async () => {
     const html = page(await reportOf(MIXED))
-    const uncited = section(html, 'Events no finding cites', 'Recommended actions')
+    const uncited = section(html, 'Events no finding cites', 'How it ran')
     expect(uncited).toContain('<strong>E05</strong>')
     expect(uncited).not.toContain('<strong>E01</strong>')
     const all = section(html, 'All evidence', 'Raw model output')
