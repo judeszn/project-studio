@@ -3,10 +3,12 @@ import { CLOUD_MODEL } from './lib/hybrid'
 import { VERDICT_LABEL } from './lib/report'
 import type { Report } from './lib/report'
 
-// The overview: what this browser session has investigated, what needs the
-// analyst, and what the platform can and cannot take in yet. Every number is
-// counted from runs made in this page; nothing is stored, uploaded or
-// invented, and with no runs the page says so.
+// The overview: what this browser session has investigated and what needs
+// the analyst. Every number is counted from runs made in this page; nothing
+// is stored, uploaded or invented. Before the first run there is nothing to
+// count, so no counts are shown: the page offers the ways to start, the AI
+// engines' status and the worked example. It shows only what the product
+// does; planned capabilities are described in the README, not here.
 
 export interface Investigation {
   id: string // the run's location and start time, as its files name it
@@ -18,24 +20,6 @@ interface Status {
   label: string
   tone: string
 }
-
-// What the platform takes in and what it can investigate. Planned items are
-// directions, not features: none of them exists in this build.
-const SOURCES: { name: string; detail: string; available: boolean }[] = [
-  { name: 'File import', detail: 'A JSON case file, read and checked in this browser', available: true },
-  { name: 'Sample case', detail: 'Simulated InfoPro authentication events', available: true },
-  { name: 'API ingestion', detail: 'Systems send events to a Project Studio endpoint', available: false },
-  { name: 'Webhooks', detail: 'Security tools push events as they happen', available: false },
-  { name: 'Local collector', detail: 'An agent forwards approved logs from company systems', available: false },
-]
-
-const TYPES: { name: string; detail: string; available: boolean }[] = [
-  { name: 'Authentication', detail: 'Logons, denied logons and account use', available: true },
-  { name: 'Phishing', detail: 'Email headers, links and attachments', available: false },
-  { name: 'Endpoint', detail: 'Processes, files and persistence', available: false },
-  { name: 'Network', detail: 'Connections and DNS', available: false },
-  { name: 'Cloud', detail: 'Identity changes and API activity', available: false },
-]
 
 const needsReview = (r: Report) => r.counts.rejected + r.counts.contradicted + r.counts.unchecked
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -56,7 +40,7 @@ export function Dashboard({
   cloud: Status
   intro: ReactNode // headline and the ways to start
   current: ReactNode // the open case, if any
-  preview: ReactNode // the worked example, shown until a run exists
+  preview: ReactNode // the worked example, shown below the rest until a run exists
   onOpen: (id: string) => void
 }) {
   const reports = investigations.map((i) => i.report)
@@ -74,22 +58,24 @@ export function Dashboard({
       <section className="dash-head">{intro}</section>
       {current}
 
-      <section className="kpis" aria-label="This session">
-        <Kpi label="Investigations" value={investigations.length} note="run in this browser session" />
-        <Kpi
-          label="Findings verified"
-          value={empty ? '0' : `${verified} of ${findings}`}
-          note="checked by code against the evidence"
-          tone={empty ? '' : 'ok'}
-        />
-        <Kpi
-          label="Need review"
-          value={review}
-          note="rejected, contradicted or unchecked"
-          tone={review > 0 ? 'fail' : ''}
-        />
-        <Kpi label="Events examined" value={events} note="across all runs" />
-      </section>
+      {!empty && (
+        <section className="kpis" aria-label="This session">
+          <Kpi label="Investigations" value={investigations.length} note="run in this browser session" />
+          <Kpi
+            label="Findings verified"
+            value={`${verified} of ${findings}`}
+            note="checked by code against the evidence"
+            tone="ok"
+          />
+          <Kpi
+            label="Need review"
+            value={review}
+            note="rejected, contradicted or unchecked"
+            tone={review > 0 ? 'fail' : ''}
+          />
+          <Kpi label="Events examined" value={events} note="across all runs" />
+        </section>
+      )}
 
       <div className="dash-grid">
         <section className="panel-card wide" aria-label="Recent investigations">
@@ -160,43 +146,38 @@ export function Dashboard({
           </p>
         </aside>
 
-        <section className="panel-card wide" aria-label="Findings needing review">
-          <div className="panel-head">
-            <h2>Findings needing review</h2>
-            <span className="status">{attention.length}</span>
-          </div>
-          {attention.length === 0 ? (
-            <p className="hint">
-              {empty
-                ? 'Findings that fail a check, or that no check covers, will appear here.'
-                : 'None: every finding in this session passed its checks.'}
-            </p>
-          ) : (
-            <ul className="attention">
-              {attention.slice(0, 6).map(({ run, finding: f }) => (
-                <li key={`${run.id}-${f.number}`}>
-                  <span className={`verdict ${f.verdict}`}>{VERDICT_LABEL[f.verdict]}</span>
-                  <span className="attention-claim">{f.claim}</span>
-                  <span className="hint">
-                    Finding {f.number} · {run.report.run?.model} · {run.report.run && time(run.report.run.startedAt)}
-                  </span>
-                  <button className="ghost small" onClick={() => onOpen(run.id)} disabled={busy}>
-                    Open
-                  </button>
-                </li>
-              ))}
-              {attention.length > 6 && (
-                <li className="hint">and {attention.length - 6} more in the investigations above</li>
-              )}
-            </ul>
-          )}
-        </section>
-
-        {empty ? preview : <Capabilities title="Investigation types" items={TYPES} />}
-
-        <Capabilities title="Evidence sources" items={SOURCES} />
-        {empty && <Capabilities title="Investigation types" items={TYPES} />}
+        {!empty && (
+          <section className="panel-card wide" aria-label="Findings needing review">
+            <div className="panel-head">
+              <h2>Findings needing review</h2>
+              <span className="status">{attention.length}</span>
+            </div>
+            {attention.length === 0 ? (
+              <p className="hint">None: every finding in this session passed its checks.</p>
+            ) : (
+              <ul className="attention">
+                {attention.slice(0, 6).map(({ run, finding: f }) => (
+                  <li key={`${run.id}-${f.number}`}>
+                    <span className={`verdict ${f.verdict}`}>{VERDICT_LABEL[f.verdict]}</span>
+                    <span className="attention-claim">{f.claim}</span>
+                    <span className="hint">
+                      Finding {f.number} · {run.report.run?.model} · {run.report.run && time(run.report.run.startedAt)}
+                    </span>
+                    <button className="ghost small" onClick={() => onOpen(run.id)} disabled={busy}>
+                      Open
+                    </button>
+                  </li>
+                ))}
+                {attention.length > 6 && (
+                  <li className="hint">and {attention.length - 6} more in the investigations above</li>
+                )}
+              </ul>
+            )}
+          </section>
+        )}
       </div>
+
+      {empty && <section className="dash-example">{preview}</section>}
     </div>
   )
 }
@@ -208,32 +189,5 @@ function Kpi({ label, value, note, tone = '' }: { label: string; value: ReactNod
       <strong className={tone}>{value}</strong>
       <span className="hint">{note}</span>
     </div>
-  )
-}
-
-function Capabilities({
-  title,
-  items,
-}: {
-  title: string
-  items: { name: string; detail: string; available: boolean }[]
-}) {
-  return (
-    <aside className="panel-card" aria-label={title}>
-      <h2>{title}</h2>
-      <ul className="capabilities">
-        {items.map((item) => (
-          <li key={item.name}>
-            <div>
-              <strong>{item.name}</strong>
-              <span className="hint">{item.detail}</span>
-            </div>
-            <span className={`cap ${item.available ? 'ok' : 'planned'}`}>
-              {item.available ? 'Available' : 'Planned'}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </aside>
   )
 }

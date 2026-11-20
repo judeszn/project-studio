@@ -58,8 +58,9 @@ Node.js 24.12 or later (`.nvmrc`); the installed Firebase SDK requires it.
 - Do not present the two models as performing the same, and do not rank them
   from single runs.
 - Planned capabilities (other intake, other investigation types, persistent
-  history) are labelled Planned in the app and the docs; do not build them
-  before the submission.
+  history) are not shown in the app, which shows only what the product does
+  (owner's decision, 2026-11-20); where the docs describe them, they are
+  labelled Planned. Do not build them before the submission.
 - Internal deployment notes stay out of the repository.
 - This repository is separate from the ADTC submission. Never modify
   `~/Desktop/eulermind-adtc-submission`.

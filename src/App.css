@@ -574,47 +574,14 @@ button.small {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.capabilities {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* The worked example, below the ways to start and the engines' status, until
+   a run exists. */
+.dash-example {
+  margin-top: 0.75rem;
 }
 
-.capabilities li {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.45rem 0;
-  border-top: 1px solid var(--border);
-  font-size: 0.9rem;
-}
-
-.capabilities li div {
-  display: grid;
-  min-width: 0;
-}
-
-.capabilities .hint {
-  font-size: 0.78rem;
-}
-
-.cap {
-  flex-shrink: 0;
-  padding: 0 0.5rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.cap.ok {
-  background: var(--ok-soft);
-  color: var(--ok);
-}
-
-.cap.planned {
-  border: 1px dashed var(--border);
-  color: var(--muted);
+.dash-example .preview {
+  margin-top: 0;
 }
 
 /* ---- Case workspace -------------------------------------------------------- */

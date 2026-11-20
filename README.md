@@ -222,7 +222,7 @@ console; register it under App Check, then set it in
 **Checks:**
 
 ```bash
-npm test        # 293 tests
+npm test        # 294 tests
 npm run lint
 npm run build   # type check and production build
 ```

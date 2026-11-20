@@ -1842,3 +1842,36 @@ Named accounts tied to the red-team labels or to the evaluation case appear
 only as LANL itself publishes them (`U748@DOM1`) or as `account A`,
 `account B`, `U<n>`. No raw LANL record, case file, run record or label file
 is in the repository.
+
+### Overview: show the working product only (owner's decision, 2026-11-20)
+
+Principle: demonstrate the product, not the product's ambitions. Three
+changes to the overview (`src/Dashboard.tsx`); nothing else changes: not the
+verifier, the verdicts, the routing between Nano and the cloud, the evidence
+model or the reports.
+
+- **No counts before the first run.** The four session counts and the
+  "Findings needing review" panel appear once a run exists; before that,
+  every count was 0 and the page looked like an empty dashboard. "Recent
+  investigations" still says that there are none yet.
+- **Worked example below the rest.** Before the first run it appears after
+  the ways to start, the recent investigations and the AI engines' status,
+  full width, still labelled simulated and written by the team, no AI.
+- **Planned capabilities removed from the app.** The "Evidence sources" and
+  "Investigation types" cards are gone; planned intake and investigation
+  types stay in the README, labelled Planned. Supersedes the rule that they
+  are labelled Planned in the app (`CLAUDE.md`, `docs/PRODUCT_DIRECTION.md`,
+  updated).
+
+Tests: the three overview tests replaced by four (no counts and no review
+panel before a run; worked example after the ways to start and the engines;
+counts and review panel with runs; no planned capability shown in either
+state). 294 of 294 pass on Node 24.22.3; lint and build pass. Checked in the
+browser pane at 1280 and 375 px wide: layout as described, no horizontal
+overflow.
+
+Wording brought in line with the verifier (owner's decision, same day): step
+2 on the overview and the Verified explanation (`src/lib/report.ts`, shown in
+the page and the report) now say the checks cover times, accounts and
+computer names. The notes on the explanation and actions still say events,
+times and accounts: the computer check applies to findings only.

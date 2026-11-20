@@ -120,7 +120,9 @@ reference and not a conclusion; new types follow the same rule.
 
 ## Rules for describing the product
 
-- Planned items are labelled "Planned" in the app and in every document.
+- Planned items are labelled "Planned" in every document. The app does not
+  show them: it shows only what the product does (owner's decision,
+  2026-11-20; previously they were listed in the app, labelled Planned).
 - The sample case is simulated and is always labelled so.
 - Verification checks the evidence for a finding; it does not show that an
   attack occurred or that a classification is right.

@@ -37,7 +37,7 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
 
 export const VERDICT_MEANING: Record<Verdict, string> = {
   verified:
-    'The cited events exist, are of the kind and outcome its type states, and the times and accounts it quotes belong to them. This checks the evidence for the finding, not the conclusion drawn from it.',
+    'The cited events exist, are of the kind and outcome its type states, and the times, accounts and computer names it quotes belong to them. This checks the evidence for the finding, not the conclusion drawn from it.',
   rejected: 'At least one check failed. The reasons are listed.',
   contradicted: 'A cited event records the opposite of what the finding states.',
   unchecked:

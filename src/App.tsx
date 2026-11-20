@@ -677,7 +677,7 @@ function App() {
                   <h2>Code verifies</h2>
                   <p>
                     Each finding is checked against the records it cites: the events exist, are what
-                    the finding says they are, and match its times and accounts.
+                    the finding says they are, and match its times, accounts and computer names.
                   </p>
                 </article>
                 <article>
