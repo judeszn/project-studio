@@ -1,7 +1,7 @@
 # Case files
 
 A case file is a JSON file of authentication events that an analyst opens
-from disk in Project Studio. The page reads and checks it in the browser. It
+from disk in AEMAS. The page reads and checks it in the browser. It
 is not uploaded when it is opened, and it reaches a cloud model only if the
 analyst allows the cloud for that case and then consents to the send.
 

@@ -347,21 +347,29 @@ production-domain items added at the end.
 - [x] Overview of the session's runs, navigation and per-run report identity
       (`src/Dashboard.tsx`, 279 tests; `docs/DECISIONS.md`, 2026-11-16).
       Runs are kept for the session only; persistent history is planned
+      _Replaced 2026-11-23 by the AEMAS Investigations page
+      (`src/Investigations.tsx`)_
 - [x] Node.js 24.12+ (`.nvmrc`), required by the installed Firebase SDK;
       checks pass on Node 24.22.3 (`docs/DECISIONS.md`, 2026-11-17)
-- [ ] Production deployment with App Check (reCAPTCHA Enterprise), up until
+- [x] Production deployment with App Check (reCAPTCHA Enterprise), up until
       Dec 16. _App Check verified on the preview channel by a consented cloud
-      run, 2026-11-15; production not yet deployed_
-- [ ] Repository checked for secrets before pushing. _First scan clean,
-      2026-11-17 (history and files to commit); repeat on the release commit_
-- [ ] Open-source licence: `LICENSE` (Apache-2.0) and `NOTICE` added; shows
-      in GitHub's About only once pushed to the default branch
-- [ ] Work merged to the public repository's default branch. _`main` holds
-      only `01ee668`; a fast-forward merge needs no force-push. Owner's
-      decision at the release review_
+      run, 2026-11-15; in production by a consented cloud run, 2026-11-17;
+      `live` serves `fbc5088` since 2026-11-20 (`docs/DECISIONS.md`,
+      2026-11-23)_
+- [x] Repository checked for secrets before pushing. _First scan clean,
+      2026-11-17 (history and files to commit); clean again on `main` at
+      `fbc5088` and its build, 2026-11-23. Repeat on every release commit_
+- [x] Open-source licence: `LICENSE` (Apache-2.0) and `NOTICE` added; shows
+      in GitHub's About only once pushed to the default branch. _On `main`
+      since 2026-11-20; GitHub reports Apache-2.0 (2026-11-23)_
+- [x] Work merged to the public repository's default branch. _`main`
+      fast-forwarded to `75e30cb` and then `fbc5088` with the owner's
+      approval, no force-push (2026-11-20). A fresh clone of `main` installs,
+      passes every test and builds (2026-11-23)_
 - [ ] README with run instructions, value proposition, evaluation results and
-      disclosure of pre-existing work. _Rewritten 2026-11-17; hosted link to
-      add once the domain is live_
+      disclosure of pre-existing work. _Rewritten 2026-11-17; hosted link and
+      the AEMAS walkthrough added 2026-11-23; ticked once committed to
+      `main`_
 - [ ] Demo video (at most 3 minutes, public YouTube, English)
 - [ ] Devpost text description and submission, on Nov 28
 
@@ -370,18 +378,35 @@ no DNS change, Hosting change or production deploy without approval)
 
 - [x] No custom-domain entry for the site, pending or active (Hosting API,
       empty list), and no public DNS record for the hostname (2026-11-17)
-- [ ] Release build passes every check; secret scan clean
-- [ ] Production (`live`) deployed with approval; it serves exactly the
-      checked files (names and SHA-256)
-- [ ] `project.phang.store` added in Hosting; the records Firebase generates
+- [x] Release build passes every check; secret scan clean (`fbc5088`: 294
+      tests, lint, type check, build; 2026-11-20 and again 2026-11-23)
+- [x] Production (`live`) deployed with approval; it serves exactly the
+      checked files (names and SHA-256; `docs/DECISIONS.md`, 2026-11-23)
+- [x] `project.phang.store` added in Hosting; the records Firebase generates
       reviewed before they are entered
-- [ ] Only those records added at GO54/WhoGoHost, on the `project` host; the
-      root site, `www` and mail (Zoho) records untouched
-- [ ] DNS propagated, domain verified, SSL certificate active
+- [x] Only those records added at GO54/WhoGoHost, on the `project` host; the
+      root site, `www` and mail (Zoho) records untouched (root A and Zoho MX
+      re-checked 2026-11-23)
+- [x] DNS propagated, domain verified, SSL certificate active (Google Trust
+      Services WR3, valid to 2027-02-16; HTTP redirects to HTTPS)
 - [ ] Over HTTPS: the page loads, `exchangeRecaptchaEnterpriseToken` returns
       200 in a normal Chrome tab, one consented cloud run and one Nano run
       succeed
-- [ ] README and Devpost use `https://project.phang.store`
+- [ ] README and Devpost use `https://project.phang.store`. _README: added
+      2026-11-23, uncommitted; Devpost: not yet written_
+- [ ] A "Not secure" warning the owner saw in their own Chrome profile
+      explained. _A clean Chrome 157 profile reports the site `secure` with no
+      issues (2026-11-23); cause in the owner's profile not yet established_
+
+**AEMAS interface** (owner's decisions, 2026-11-23)
+
+- [x] Built and checked locally: 305 tests, lint, type check, build; checked
+      in the browser at 375, 768 and 1280 px, light and dark, by keyboard
+      (`docs/DECISIONS.md`, 2026-11-23)
+- [ ] Committed, pushed, `main` fast-forwarded, and deployed, each with the
+      owner's approval; `live` serves exactly the checked files
+- [ ] Acceptance in the owner's Chrome on `project.phang.store`: one Nano
+      run, one consented cloud run, and the offline Nano run
 
 ## Risks
 

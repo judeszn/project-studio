@@ -1,6 +1,7 @@
-# Project Studio
+# AEMAS (repository: Project Studio)
 
-AI-assisted investigation of technical security incidents, built solo for
+AEMAS (AI Event Matching and Analysis System) by PHANG Group: AI-assisted
+investigation of technical security incidents, built solo for
 #BuildHybridAI 2026 (Web/Chrome). An analyst opens a case of authentication
 events (a JSON case file, or the simulated sample); Gemini Nano on the device,
 or Gemini in the cloud after the analyst's consent, proposes findings through
@@ -35,8 +36,8 @@ Node.js 24.12 or later (`.nvmrc`); the installed Firebase SDK requires it.
   after any Firebase upgrade. Firebase AI Logic only, never a direct Gemini API
   call. Show the SDK mode and `response.inferenceSource` wherever a result is
   shown.
-- Deterministic checks (schema, citations, quoted times and accounts, whether
-  cited events support a finding's type, repeated findings) live in
+- Deterministic checks (schema, citations, quoted times, accounts and computer
+  names, whether cited events support a finding's type, repeated findings) live in
   `src/lib/verify.ts` and are never delegated to a model. They fail closed.
   Every change there comes with unit tests.
 - Never commit Firebase secrets or App Check debug tokens. Config comes from
@@ -57,10 +58,19 @@ Node.js 24.12 or later (`.nvmrc`); the installed Firebase SDK requires it.
 - Do not fake network disconnection.
 - Do not present the two models as performing the same, and do not rank them
   from single runs.
-- Planned capabilities (other intake, other investigation types, persistent
-  history) are not shown in the app, which shows only what the product does
-  (owner's decision, 2026-11-20); where the docs describe them, they are
-  labelled Planned. Do not build them before the submission.
+- Planned capabilities (API-first integrations, other intake, other
+  investigation types, persistent history; `docs/PRODUCT_DIRECTION.md`) are
+  not shown in the app, which shows only what the product does (owner's
+  decision, 2026-11-20); where the docs describe them, they are labelled
+  Planned. Do not build them before the submission.
+- The interface (owner's decisions, 2026-11-23): AEMAS by PHANG Group, full
+  name "AI Event Matching and Analysis System", never "Monitoring". Main
+  navigation Overview, Case Study, Investigations; an open case has Evidence,
+  Analysis, Report. The home page names no model or platform (Gemini,
+  Firebase): how the AI runs is shown in Analysis and the footer's system
+  details. The case study keeps public record, hypothetical use and limits
+  apart, and cites its source. The run-record format ID stays
+  `project-studio.run-record/1`.
 - Internal deployment notes stay out of the repository.
 - This repository is separate from the ADTC submission. Never modify
   `~/Desktop/eulermind-adtc-submission`.

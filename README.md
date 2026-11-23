@@ -1,7 +1,11 @@
-# Project Studio
+# AEMAS
 
-Project Studio helps an analyst investigate a technical security incident from
-the evidence they supply. An AI model proposes what happened; code checks
+**AEMAS (AI Event Matching and Analysis System)** by PHANG Group: security
+event investigation and evidence verification. This repository keeps the
+project's working name, Project Studio.
+
+AEMAS helps an analyst investigate a technical security incident from the
+evidence they supply. An AI model proposes what happened; code checks
 every proposed finding against the records it cites; the analyst decides.
 
 **AI proposes. Code verifies. The analyst decides.**
@@ -19,33 +23,36 @@ every proposed finding against the records it cites; the analyst decides.
   is available through Firebase AI Logic, but only when the analyst chooses
   it and consents, every time, before any evidence is sent.
 
-Project Studio is not a chatbot, an autonomous security analyst or an
-automated incident response system. It does not take actions, and a verified
-finding does not prove that an attack happened.
+AEMAS is not a chatbot, an autonomous security analyst, a monitoring system
+or an automated incident response system. It analyses the records it is
+given, does not take actions, and a verified finding does not prove that an
+attack happened.
 
 Built for #BuildHybridAI 2026 (Web/Chrome) by Boluwatife Faturoti, PHANG Group.
 
 ## Try it
 
-**Hosted app:** _link added at release._
+**Hosted app:** https://project.phang.store
 
 No file is needed. In Chrome:
 
-1. Open the app. The overview shows this session's investigations (none yet).
-2. Choose **Try the sample investigation**: 18 simulated authentication
-   events, built into the page.
+1. Open the app. **Overview** states the problem, the workflow and the
+   current scope, followed by the **Case Study** (the 2024 Change Healthcare
+   attack, from the public record).
+2. Choose **Start an Investigation**, then **Use sample evidence
+   (simulated)**: 18 simulated authentication events, built into the page.
 3. **Evidence** shows each event with its original record.
-4. **Run**: choose **On this device** (Gemini Nano) or **In the cloud**. The
-   cloud asks for consent, and shows Google's data terms, before anything is
-   sent.
-5. **Findings** shows the overall result, the four verdict counts, evidence
-   coverage, each finding with its verdict and reasons, then the model's
-   explanation and classification.
-6. **Report** exports a self-contained HTML report and, for a model run, a JSON
+4. **Analysis**: choose **On this device** (Gemini Nano) or **In the cloud**,
+   then **Run analysis**. The cloud asks for consent, and shows Google's data
+   terms, before anything is sent. The findings appear: the overall result,
+   the four verdict counts, evidence coverage, each finding with its verdict
+   and reasons, then the model's explanation and classification.
+5. **Report** exports a self-contained HTML report and, for a model run, a JSON
    run record.
 
-**See how verification works** opens a worked example: a proposal written by
-the Project Studio team, with no AI involved, that produces all four verdicts.
+**How verdicts work** (on Overview, Investigations and Analysis) opens a
+worked example: a proposal written by the AEMAS team, with no AI involved,
+that produces all four verdicts.
 
 If your machine cannot run Gemini Nano, use the cloud path after consent. The
 sample case is simulated: InfoPro and PHANG Group are the author's own
@@ -120,9 +127,9 @@ later.
 
 | Status | What |
 | --- | --- |
-| Implemented | JSON case files (`docs/CASE_FILE.md`) and the built-in sample; authentication events (logons and denied logons); on-device and consent-gated cloud inference; App Check; deterministic verification; overview of the current browser session's runs (kept in memory, not stored); HTML report and JSON run record |
+| Implemented | JSON case files (`docs/CASE_FILE.md`) and the built-in sample; authentication events (logons and denied logons); on-device and consent-gated cloud inference; App Check; deterministic verification; a list of the current browser session's investigations (kept in memory, not stored); HTML report and JSON run record |
 | Evaluated | One Nano run on each of two cases from the public LANL dataset, against a deterministic baseline (below) |
-| Planned, not built | Other intake (API, webhooks, a local collector, CSV, XLSX, PDF); other investigation types (phishing, endpoint, network, cloud); persistent investigation history |
+| Planned, not built | API-first integrations: browser-side connectors to sources such as Microsoft Entra ID and Google Workspace, and a versioned ingestion API (OpenAPI) with authentication, tenant isolation and audit before it accepts data, all mapping into the case-file event format; other file formats (CSV, NDJSON, XLSX, PDF); other investigation types (phishing, endpoint, network, cloud); persistent investigation history. Not monitoring: an organisation would choose the events it sends. Details: `docs/PRODUCT_DIRECTION.md` |
 
 Known limits: verification checks cited evidence and selected details
 extracted from a finding; it does not establish that an attack occurred or
@@ -222,7 +229,7 @@ console; register it under App Check, then set it in
 **Checks:**
 
 ```bash
-npm test        # 294 tests
+npm test        # 305 tests
 npm run lint
 npm run build   # type check and production build
 ```
@@ -259,7 +266,8 @@ and `docs/DECISIONS.md` record what was done when, with evidence.
 | `src/lib/verify.ts` | Deterministic verification |
 | `src/lib/casefile.ts` | Case-file loader |
 | `src/lib/report.ts`, `src/lib/record.ts` | Report, export and run record |
-| `src/App.tsx`, `src/Dashboard.tsx`, `src/ReportView.tsx` | The interface |
+| `src/App.tsx` | The interface: pages, investigation steps, run and consent |
+| `src/Overview.tsx`, `src/CaseStudy.tsx`, `src/Investigations.tsx`, `src/Shell.tsx`, `src/ReportView.tsx` | Overview, case study, investigations list, header and footer, findings |
 | `src/data/` | Sample case, worked example, GS-03 fixture |
 | `tools/lanl/` | LANL case building and evaluation (reads a local copy; no LANL data here) |
 | `docs/` | Decisions and evidence, product direction, case-file format, hackathon guide |
@@ -267,8 +275,8 @@ and `docs/DECISIONS.md` record what was done when, with evidence.
 ## Data and privacy
 
 - Evidence stays in the browser unless the analyst consents to send it to the
-  cloud model. Project Studio has no server of its own and stores nothing;
-  closing the page clears the session.
+  cloud model. AEMAS has no server of its own and stores nothing; closing the
+  page clears the session.
 - The cloud path uses the free tier of the Gemini Developer API. Under
   Google's terms Google may use what is sent, and human reviewers may read
   it. Send only synthetic or non-sensitive data.
@@ -276,7 +284,7 @@ and `docs/DECISIONS.md` record what was done when, with evidence.
 
 ## Licence
 
-Project Studio's original source code is licensed under the
+The project's original source code is licensed under the
 [Apache License 2.0](LICENSE). Copyright and third-party attributions are in
 [NOTICE](NOTICE). The licence does not cover third-party material: MITRE
 ATT&CK content stays under MITRE's terms of use, the LANL dataset (not

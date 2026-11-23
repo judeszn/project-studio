@@ -1845,6 +1845,9 @@ is in the repository.
 
 ### Overview: show the working product only (owner's decision, 2026-11-20)
 
+_Superseded 2026-11-23 by "AEMAS interface" below: the overview and
+`src/Dashboard.tsx` were replaced. The principle stands._
+
 Principle: demonstrate the product, not the product's ambitions. Three
 changes to the overview (`src/Dashboard.tsx`); nothing else changes: not the
 verifier, the verdicts, the routing between Nano and the cloud, the evidence
@@ -1875,3 +1878,141 @@ Wording brought in line with the verifier (owner's decision, same day): step
 the page and the report) now say the checks cover times, accounts and
 computer names. The notes on the explanation and actions still say events,
 times and accounts: the computer check applies to findings only.
+
+### Production release and custom domain (2026-11-18 to 2026-11-20; recorded 2026-11-23)
+
+Each step had the owner's separate approval; none was a force-push.
+
+- `main` fast-forwarded to `75e30cb` (the verifier's computer-name and
+  seconds checks, and the README), and `live` redeployed from it, 2026-11-18.
+- `project.phang.store` added in Firebase Hosting. The records Firebase
+  generated were reviewed before they were entered. At GO54/WhoGoHost only
+  the `project` host changed: `CNAME project.phang.store ->
+  project-studio-4c811.web.app`. The root site (A `178.105.170.233`), `www`
+  and the Zoho mail records are untouched.
+- Certificate: `CN=project.phang.store`, issued by Google Trust Services WR3,
+  valid 2026-11-18 to 2027-02-16. HTTP redirects to HTTPS (301); HSTS is on.
+- `fbc5088` (the overview shows the working product only) committed, pushed,
+  `main` fast-forwarded and `live` redeployed, 2026-11-20. The files served
+  by `project-studio-4c811.web.app`, `project-studio-4c811.firebaseapp.com`
+  and `project.phang.store` are byte-identical to the local build:
+
+| File | SHA-256 |
+| --- | --- |
+| `index.html` | `416e0ccd297c1f63…` |
+| `assets/index-keDgq1fV.js` | `79a2663bd6fcaaa7…` |
+| `assets/index-D_Z7SGRk.css` | `dacaee60235baa28…` |
+
+Re-checked 2026-11-23: the same three hashes on `project.phang.store`; the
+CNAME, root A record, Zoho MX records and certificate as above. Not yet done:
+acceptance in the owner's own Chrome on this domain (a Nano run, a consented
+cloud run and the offline Nano run).
+
+### Repository readiness review (2026-11-23)
+
+Read-only review; nothing changed.
+
+- Working tree clean; GitHub `main` and `feat/gs03-investigation` at
+  `fbc5088`. A fresh clone of `main` with `npm ci` passes 294 of 294 tests,
+  lint and the build without any `.env` file. npm 11.19 skips the install
+  scripts of `esbuild`, `protobufjs` and `@firebase/util` with a warning;
+  tests and build pass regardless.
+- `npm audit`: 4 high-severity advisories, all through `@grpc/grpc-js` in
+  `@firebase/firestore`. The app does not import Firestore (only
+  `firebase/ai`, `firebase/app` and `firebase/app-check`) and the bundle
+  contains no gRPC code. npm's suggested fix is a downgrade to `firebase`
+  9.14.0, which would break the app; not applied.
+- Secret scan of tracked files and the build: clean. Documentation links: the
+  only stale file name (`src/data/demo-case.json`) is historical and already
+  annotated.
+- A "Not secure" warning the owner saw in their own Chrome: a clean Chrome
+  157 profile, read through the DevTools protocol, reports the page `secure`
+  with no issues, every one of its 10 requests over HTTPS with a valid
+  certificate, and both App Check exchanges 200. No Chrome profile on the
+  machine holds a certificate-error bypass for `project.phang.store`. The
+  cause in the owner's profile is not established; nothing was changed.
+
+### AEMAS interface (owner's decisions, 2026-11-23)
+
+Why: the interface read as a demonstration of a prototype (session counters,
+the AI's status badges, a worked example on the home page, explanations of
+the technology). The owner decided it should present a security
+investigation product and show only what works. The engine does not change.
+
+Decisions:
+
+- **Name:** AEMAS by PHANG Group; descriptor "Security event investigation
+  and evidence verification"; full name "AI Event Matching and Analysis
+  System". "Monitoring", in the name first proposed, was rejected because the
+  product does not monitor; the owner first chose no expansion, then asked for
+  one the same day and chose "Matching": code matches each finding against
+  the records it cites. The repository and Firebase project keep the name
+  Project Studio.
+- **Navigation:** Overview, Case Study, Investigations; an open case has
+  Evidence, Analysis, Report. No menu item leads to an empty page.
+- **The sample** is offered under Investigations as "Use sample evidence
+  (simulated)", no longer promoted on the home page. **The worked example**
+  is "How verdicts work", reachable from Overview, Investigations and
+  Analysis.
+- **Not built:** an analyst accept or dismiss control (it would change the
+  report and run-record formats).
+- **Reports:** the displayed product name changes from Project Studio to
+  AEMAS (`src/lib/report.ts`, `src/ReportView.tsx`; owner's approval). The
+  run-record format ID stays `project-studio.run-record/1`, so existing
+  records still check. `src/data/sample-case.json` is unchanged (its hash is
+  in the run records), so its citation still reads "Simulated for Project
+  Studio".
+- **Case study:** the 2024 Change Healthcare attack, in four labelled parts:
+  public record, the investigative challenge, hypothetical use, limits. The
+  facts are from Andrew Witty's written testimony to the House Energy and
+  Commerce Committee, Subcommittee on Oversight and Investigations, 1 May
+  2024 (downloaded and read; the timeline is on pages 4 and 5): compromised
+  credentials used on 12 February 2024 on a Citrix remote-access portal
+  without multi-factor authentication; lateral movement and data
+  exfiltration; ransomware on 21 February; connectivity to Change's data
+  centres severed, at a time when the entry point was not yet known. The
+  affected-person figure is not used: only secondary sources for it were
+  found.
+
+What changed: `index.html` (title, description, icon); `src/App.tsx` (pages
+and steps; run, consent and record logic unchanged); new `src/Shell.tsx`,
+`src/Overview.tsx`, `src/CaseStudy.tsx`, `src/Investigations.tsx`,
+`src/site.ts`; `src/App.css`; `src/Dashboard.tsx` removed. Unchanged:
+`src/lib/verify.ts`, `hybrid.ts`, `firebase.ts`, `casefile.ts`, `record.ts`,
+`schema.ts`, `prompts.ts`, `src/data/*` (apart from four renamed assertions
+in `worked-example.test.ts`), `tools/`, the Firebase configuration and the
+dependencies.
+
+Tests: the four dashboard tests removed with the dashboard; 15 added (the
+investigations list, the home page, the case study and the header): the home
+page names no model or platform, claims no monitoring, and spells out the
+name without "Monitoring"; the case study has its four labelled parts, cites
+the testimony and states its limits. Four worked-example assertions follow
+the rename ("the AEMAS team"); none was removed. 305 of 305 pass on Node
+24.22.3; lint (no warnings), type check and build pass. Checked in the
+browser pane at 1280, 768 and 375 px, in light and dark mode, and by
+keyboard (skip link, visible focus): no horizontal overflow, no console
+errors; `#/case-study` opens at the case study below the sticky header.
+
+Process note: removing the two dashboard files, `git rm --cached` was
+followed by `git reset` on those two paths, against the rule not to use
+`reset`. The net effect on the index was none; the files were deleted from
+the working tree only.
+
+### Connection roadmap: API-first, Planned (owner's decision, 2026-11-23)
+
+Live telemetry and API ingestion were proposed and not built before the
+submission. Reasons: Gemini Nano takes about 50 events per run, so AEMAS
+investigates a bounded case after a SIEM or another platform has narrowed
+it, and is not a log store; a server that receives an organisation's logs
+would give up the local-first privacy model the entry rests on; and no real
+source tenant is available, so a demonstration would need invented data.
+
+Recorded as Planned in `docs/PRODUCT_DIRECTION.md`: API-first integration;
+the case-file event format as version 1 of the internal evidence schema;
+browser-side connectors (evidence does not pass through an AEMAS server); a
+versioned ingestion API described in OpenAPI, only after authentication,
+tenant isolation, audit, retention and a security review are decided; file
+import kept. Receiving selected events is not monitoring, and is not
+described as such. The README's "Planned, not built" row points to it. No
+application code changed.
