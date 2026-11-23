@@ -54,28 +54,6 @@ export function EventList({ events }: { events: ReportEvent[] }) {
 
 // A section that folds away, so a long result reads on a phone. The summary
 // line keeps the essentials visible while it is closed.
-export function Panel({
-  title,
-  status,
-  open = false,
-  children,
-}: {
-  title: string
-  status?: string
-  open?: boolean
-  children: ReactNode
-}) {
-  return (
-    <details className="panel" open={open}>
-      <summary>
-        <h2>{title}</h2>
-        {status && <span className="status">{status}</span>}
-      </summary>
-      <div className="panel-body">{children}</div>
-    </details>
-  )
-}
-
 export function Sub({
   title,
   status,
