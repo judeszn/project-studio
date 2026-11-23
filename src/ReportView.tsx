@@ -17,7 +17,7 @@ import { EventList, Problems, Sub } from './ui'
 
 // The investigation report on the page. It renders the same Report the
 // exported file does (lib/report.ts), with the same labels for who wrote the
-// proposal: a model, or, in the worked example, the Project Studio team.
+// proposal: a model, or, in the worked example, the AEMAS team.
 //
 // The order is the analyst's: the overall result, the verdict counts and
 // evidence coverage, then each finding, then the proposal's own explanation
@@ -34,7 +34,7 @@ export function ReportView({
   report: Report
   onExport: () => void
   onRecord?: () => void // a real run only; the worked example has no run record
-  showActions?: boolean // false where the page offers exports elsewhere (the Report tab)
+  showActions?: boolean // false where the page offers exports elsewhere (the Report step)
 }) {
   const { run, proposal, counts } = report
   const w = WORDS[report.author]
@@ -51,7 +51,7 @@ export function ReportView({
     top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
   return (
-    <section ref={top} className="card" role="tabpanel" aria-label="Findings">
+    <section ref={top} className="card" aria-label="Findings">
       <h2>{run ? 'Findings' : w.title}</h2>
       {run && <p className="meta run-label">This run: {runLabel(report)}</p>}
 
@@ -243,7 +243,7 @@ export function ReportView({
           ) : (
             <>
               <dt>Proposal written by</dt>
-              <dd>the Project Studio team, not a model</dd>
+              <dd>the AEMAS team, not a model</dd>
               <dt>Model</dt>
               <dd>none: no model ran</dd>
               <dt>Cloud</dt>

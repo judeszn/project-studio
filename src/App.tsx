@@ -20,22 +20,19 @@ import type { ConsentReason, Done, Engine, Request, buildModels } from './lib/hy
 import { authSystemPrompt, buildPrompt } from './lib/prompts'
 import { buildRunRecord, readOnDeviceParams, recordFileName, sha256Hex } from './lib/record'
 import type { RunFacts, RunRecord } from './lib/record'
-import {
-  VERDICTS,
-  VERDICT_LABEL,
-  buildReport,
-  buildWorkedExample,
-  reportFileName,
-  reportHtml,
-} from './lib/report'
+import { buildReport, buildWorkedExample, reportFileName, reportHtml } from './lib/report'
 import type { Report } from './lib/report'
 import { LANL_FINDING_TYPES, lanlProposalSchema } from './lib/schema'
 import type { FindingType, LogEvent } from './lib/schema'
 import { verifyProposal } from './lib/verify'
 import type { Verification } from './lib/verify'
-import { Dashboard } from './Dashboard'
-import type { Investigation } from './Dashboard'
+import { CaseStudy } from './CaseStudy'
+import { Investigations } from './Investigations'
+import type { Investigation } from './Investigations'
+import { Overview } from './Overview'
 import { ReportView } from './ReportView'
+import { SiteFooter, SiteHeader } from './Shell'
+import type { Page } from './site'
 import { EventList } from './ui'
 import './App.css'
 
@@ -45,8 +42,10 @@ import './App.css'
 // deterministic checks -> an investigation report and a run record the
 // analyst can keep.
 //
-// The page: a top bar with the AI's status, a landing view when no case is
-// open, and a case workspace in four tabs (Evidence, Run, Findings, Report).
+// The pages: Overview (with the case study), Investigations (where a case is
+// opened, and this session's runs), and an open case in three steps
+// (Evidence, Analysis, Report). How the AI runs, and its status, are shown
+// in the Analysis step and in the footer's system details.
 // The built-in GS-03 case (src/data/gs03.ts) is no longer offered here; it
 // stays as a regression fixture for its tests.
 
@@ -152,31 +151,29 @@ const download = (record: RunRecord) =>
 const exportReport = (report: Report) =>
   save(reportFileName(report), reportHtml(report, new Date().toISOString()), 'text/html')
 
-type Tab = 'evidence' | 'run' | 'findings' | 'report'
+type Tab = 'evidence' | 'analysis' | 'report'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'evidence', label: 'Evidence' },
-  { id: 'run', label: 'Run' },
-  { id: 'findings', label: 'Findings' },
+  { id: 'analysis', label: 'Analysis' },
   { id: 'report', label: 'Report' },
 ]
 
-// The landing page's preview: the worked example's verdicts, from the same
-// checks the example runs, so the numbers shown are the ones it produces.
-const PREVIEW: Report | null = (() => {
-  const parsed = parseCaseFile(DEMO_CASE)
-  if (!parsed.ok) return null
-  const c = parsed.case
-  const caseInfo = {
-    id: c.id,
-    origin: 'demo' as const,
-    fileName: 'sample-case.json',
-    sha256: '', // not shown; the example itself hashes the file
-    events: c.events.length,
-    source: c.source,
-  }
-  return buildWorkedExample(caseInfo, WORKED_EXAMPLE_TEXT, c.events, c.provenance, LANL_FINDING_TYPES)
-})()
+// The page an address names when the page is first loaded. A case cannot be
+// reopened from its address (it lives in this page), so a case address
+// starts at Investigations.
+function pageFromHash(hash: string): Page {
+  if (hash === '#/case-study') return 'case-study'
+  if (hash === '#/investigations' || hash.startsWith('#/case/')) return 'investigations'
+  return 'overview'
+}
+
+// Earlier addresses named Run and Findings; both are now Analysis.
+function tabFromHash(hash: string): Tab | null {
+  const match = /^#\/case\/(evidence|analysis|run|findings|report)$/.exec(hash)
+  if (!match) return null
+  return match[1] === 'run' || match[1] === 'findings' ? 'analysis' : (match[1] as Tab)
+}
 
 interface Status {
   label: string // in full, where there is room
@@ -224,7 +221,6 @@ function App() {
   const [active, setActive] = useState<ActiveCase | null>(null)
   const [tab, setTab] = useState<Tab>('evidence')
   const [where, setWhere] = useState<Request>('on_device')
-  const [showSystem, setShowSystem] = useState(false)
   const [allowCloud, setAllowCloud] = useState(false)
   const [fileErrors, setFileErrors] = useState<string[]>([])
   const [availability, setAvailability] = useState('checking…')
@@ -232,16 +228,24 @@ function App() {
   const [progress, setProgress] = useState<number | null>(null)
   const [run, setRun] = useState<Run>({ state: 'idle' })
   const [result, setResult] = useState<RunResult | null>(null)
-  // Home can be shown while a case stays open; the case is closed only on
-  // the analyst's word.
-  const [atHome, setAtHome] = useState(false)
+  // Other pages can be shown while a case stays open; the case is closed only
+  // on the analyst's word.
+  const [page, setPage] = useState<Page>(() => pageFromHash(location.hash))
   const fileInput = useRef<HTMLInputElement>(null)
 
-  // The browser's back and forward move between home and the case's tabs.
-  // The address holds only the view (#/, #/case/findings); the case itself
-  // lives in this page, so after a reload, or once it is closed, a case
-  // address shows home.
-  const route = active === null || atHome ? '#/' : `#/case/${tab}`
+  // The browser's back and forward move between the pages and the case's
+  // steps. The address holds only the view (#/, #/investigations,
+  // #/case/analysis); the case itself lives in this page, so after a reload,
+  // or once it is closed, a case address shows Investigations.
+  const shown: Page = page === 'case' && active === null ? 'investigations' : page
+  const route =
+    shown === 'case'
+      ? `#/case/${tab}`
+      : shown === 'case-study'
+        ? '#/case-study'
+        : shown === 'investigations'
+          ? '#/investigations'
+          : '#/'
   const hasCase = useRef(false)
   hasCase.current = active !== null
   const firstRoute = useRef(true)
@@ -253,18 +257,26 @@ function App() {
   useEffect(() => {
     firstRoute.current = false
     const onPop = () => {
-      const match = /^#\/case\/(evidence|run|findings|report)$/.exec(location.hash)
-      if (match && hasCase.current) {
-        setAtHome(false)
-        setTab(match[1] as Tab)
+      const caseTab = tabFromHash(location.hash)
+      if (caseTab && hasCase.current) {
+        setPage('case')
+        setTab(caseTab)
       } else {
-        setAtHome(true)
-        if (location.hash !== '#/') history.replaceState(null, '', '#/')
+        const next = pageFromHash(location.hash)
+        setPage(next)
+        if (next !== 'case-study') window.scrollTo(0, 0)
+        const own = next === 'case-study' ? '#/case-study' : next === 'investigations' ? '#/investigations' : '#/'
+        if (location.hash !== own) history.replaceState(null, '', own)
       }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  // The case study is a section of the overview: its address scrolls to it.
+  useEffect(() => {
+    if (shown === 'case-study') document.getElementById('case-study')?.scrollIntoView({ block: 'start' })
+  }, [shown])
 
   // Every model run of this session, newest first. Closing a case or running
   // again loses nothing while the page is open; it is kept in memory only, so
@@ -278,18 +290,20 @@ function App() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [unsaved])
 
-  function goHome() {
-    setAtHome(true)
-    window.scrollTo(0, 0)
+  function navigate(next: Page) {
+    const to = next === 'case' && active === null ? 'investigations' : next
+    setPage(to)
+    if (to === 'case-study') document.getElementById('case-study')?.scrollIntoView({ block: 'start' })
+    else window.scrollTo(0, 0)
   }
 
-  // Reopens a run from the overview, on its own case, at its findings.
+  // Reopens a run from Investigations, on its own case, at its findings.
   function openInvestigation(id: string) {
     const k = kept.find((i) => i.id === id)
     if (!k) return
     show(k.caseFile)
     setResult({ record: k.record, report: k.report })
-    setTab('findings')
+    setTab('analysis')
   }
 
   const { engine, models } = active ?? PROBE
@@ -362,9 +376,9 @@ function App() {
     if (c) show(c)
   }
 
-  // The worked example: the sample case, and a proposal the Project Studio
-  // team wrote, checked by the same code. No model runs and no run record is
-  // made.
+  // The worked example ("How verdicts work"): the sample case, and a proposal
+  // the AEMAS team wrote, checked by the same code. No model runs and no run
+  // record is made.
   async function openWorkedExample() {
     const c = await demoCase()
     if (!c || !c.sha256) return
@@ -381,12 +395,14 @@ function App() {
       record: null,
       report: buildWorkedExample(caseInfo, WORKED_EXAMPLE_TEXT, c.events, c.provenance, c.findingTypes),
     })
-    setTab('findings')
+    setTab('analysis')
   }
 
+  // Opens a case at its evidence; closing one returns to Investigations.
   function show(next: ActiveCase | null) {
     setActive(next)
-    setAtHome(false)
+    setPage(next ? 'case' : 'investigations')
+    window.scrollTo(0, 0)
     setTab('evidence')
     setWhere('on_device')
     setAllowCloud(false)
@@ -448,7 +464,7 @@ function App() {
     setResult({ record, report })
     setKept((list) => [{ id: reportFileName(report), caseTitle: caseTitle(c), report, record, caseFile: c }, ...list])
     setRun({ state: 'done' })
-    setTab('findings')
+    setTab('analysis')
   }
 
   // A run that gave no answer is kept as a record too, never retried elsewhere.
@@ -502,45 +518,70 @@ function App() {
     </div>
   )
 
+  // What the system runs on, for an analyst who needs it: folded into the
+  // footer, never shown as a feature.
+  const systemDetails = (
+    <div className="system">
+      <dl>
+        <dt>On-device AI (Gemini Nano in Chrome)</dt>
+        <dd className={nano.tone}>{availability}</dd>
+        <dt>Cloud AI</dt>
+        <dd>{CLOUD_MODEL} through Firebase AI Logic, only after your consent</dd>
+        <dt>App Check (proves requests come from this app)</dt>
+        <dd className={cloud.tone}>{appCheckMode}</dd>
+        <dt>Firebase project</dt>
+        <dd className={firebaseConfigured ? '' : 'fail'}>
+          {firebaseConfigured
+            ? import.meta.env.VITE_FIREBASE_PROJECT_ID
+            : 'not configured; cloud calls cannot succeed'}
+        </dd>
+        <dt>Inference modes</dt>
+        <dd>
+          {LOCAL_MODE} until you consent; then {InferenceMode.PREFER_ON_DEVICE} (Nano
+          unavailable) or {InferenceMode.PREFER_IN_CLOUD} (Nano failed, or cloud asked for)
+        </dd>
+        <dt>Network</dt>
+        <dd className={online ? '' : 'warn'}>{online ? 'online' : 'offline'}</dd>
+      </dl>
+      {availability !== 'available' && prepare()}
+    </div>
+  )
+
+  const openCaseCard = active && (
+    <section className="card resume" aria-label="Open case">
+      <div>
+        <p className="eyebrow">Open investigation</p>
+        <strong>{caseTitle(active)}</strong>
+        <p className="meta">
+          {busy
+            ? 'Analysis running'
+            : result?.record
+              ? `Findings ready: ${result.report.counts.verified} of ${result.report.findings.length} verified · ${result.record.execution.model ?? 'no model'}`
+              : result
+                ? 'How verdicts work: worked example open'
+                : 'Not analysed yet'}
+        </p>
+      </div>
+      <div className="actions">
+        <button className="primary" onClick={() => navigate('case')}>
+          Resume
+        </button>
+        <button className="ghost" onClick={() => show(null)} disabled={busy}>
+          Close case
+        </button>
+      </div>
+    </section>
+  )
+
   return (
     <>
-      <header className="topbar">
-        <a
-          className="brand"
-          href="#/"
-          aria-label="Project Studio home"
-          onClick={(e) => {
-            e.preventDefault()
-            goHome()
-          }}
-        >
-          <span className="mark" aria-hidden="true" />
-          <div>
-            <strong>Project Studio</strong>
-            <span>by PHANG Group</span>
-          </div>
-        </a>
-        <div className="chips">
-          <button
-            className={`chip ${nano.tone}`}
-            onClick={() => setShowSystem((open) => !open)}
-            aria-expanded={showSystem}
-          >
-            <span className="dot" aria-hidden="true" />
-            <span className="long">On-device AI: {nano.label}</span>
-            <span className="short">Nano: {nano.short}</span>
-          </button>
-          <button
-            className={`chip ${cloud.tone}`}
-            onClick={() => setShowSystem((open) => !open)}
-            aria-expanded={showSystem}
-          >
-            <span className="dot" aria-hidden="true" />
-            <span className="long">Cloud AI: {cloud.label}</span>
-            <span className="short">Cloud: {cloud.short}</span>
-          </button>
-        </div>
-      </header>
+      <a className="skip" href="#main" onClick={(e) => {
+        e.preventDefault()
+        document.getElementById('main')?.focus()
+      }}>
+        Skip to content
+      </a>
+      <SiteHeader page={shown} onNavigate={navigate} />
 
       <input
         ref={fileInput}
@@ -555,154 +596,40 @@ function App() {
         }}
       />
 
-      <main className="shell">
-        {showSystem && (
-          <section className="card system" aria-label="System details">
-            <div className="card-head">
-              <h2>System</h2>
-              <button className="ghost" onClick={() => setShowSystem(false)}>
-                Close
-              </button>
-            </div>
-            <dl>
-              <dt>On-device AI (Gemini Nano in Chrome)</dt>
-              <dd className={nano.tone}>{availability}</dd>
-              <dt>Cloud AI</dt>
-              <dd>
-                {CLOUD_MODEL} through Firebase AI Logic, only after your consent
-              </dd>
-              <dt>App Check (proves requests come from this app)</dt>
-              <dd className={cloud.tone}>{appCheckMode}</dd>
-              <dt>Firebase project</dt>
-              <dd className={firebaseConfigured ? '' : 'fail'}>
-                {firebaseConfigured
-                  ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                  : 'not configured; cloud calls cannot succeed'}
-              </dd>
-              <dt>Inference modes</dt>
-              <dd>
-                {LOCAL_MODE} until you consent; then {InferenceMode.PREFER_ON_DEVICE} (Nano
-                unavailable) or {InferenceMode.PREFER_IN_CLOUD} (Nano failed, or cloud asked for)
-              </dd>
-              <dt>Network</dt>
-              <dd className={online ? '' : 'warn'}>{online ? 'online' : 'offline'}</dd>
-            </dl>
-            {availability !== 'available' && prepare()}
-          </section>
+      <main id="main" className="shell" tabIndex={-1}>
+        {(shown === 'overview' || shown === 'case-study') && (
+          <Overview
+            notice={fileProblems}
+            caseStudy={<CaseStudy />}
+            busy={busy}
+            onStart={() => navigate('investigations')}
+            onCaseStudy={() => navigate('case-study')}
+            onHowVerdicts={openWorkedExample}
+          />
         )}
 
-        {active === null || atHome ? (
-          <>
-            <Dashboard
-              investigations={kept}
-              busy={busy}
-              nano={{ label: nano.label, tone: nano.tone }}
-              cloud={{ label: cloud.label, tone: cloud.tone }}
-              onOpen={openInvestigation}
-              intro={
-                <>
-                  <div className="hero-copy">
-                    <p className="eyebrow">AI proposes. Code verifies. The analyst decides.</p>
-                    <h1>Investigate security events. Keep control of your evidence.</h1>
-                    <p className="lede">
-                      Project Studio uses AI to investigate security events, checks proposed
-                      findings against original evidence, and keeps the analyst in control of every
-                      decision.
-                    </p>
-                    {fileProblems}
-                  </div>
-                  <div className="dash-actions">
-                    <button
-                      className="primary"
-                      onClick={() => fileInput.current?.click()}
-                      disabled={busy}
-                    >
-                      Open a case file
-                    </button>
-                    <button className="secondary" onClick={openDemo} disabled={busy}>
-                      Try the sample investigation
-                    </button>
-                    <p className="hint">
-                      A case file is read and checked in this browser; opening one uploads
-                      nothing. The sample uses simulated InfoPro authentication events.
-                    </p>
-                  </div>
-                </>
-              }
-              current={
-                active && (
-                  <section className="card resume" aria-label="Open case">
-                    <div>
-                      <p className="eyebrow">Open case</p>
-                      <strong>{caseTitle(active)}</strong>
-                      <p className="meta">
-                        {busy
-                          ? 'Investigation running'
-                          : result?.record
-                            ? `Findings ready: ${result.report.counts.verified} of ${result.report.findings.length} verified · ${result.record.execution.model ?? 'no model'}`
-                            : result
-                              ? 'Worked example open'
-                              : 'Not investigated yet'}
-                      </p>
-                    </div>
-                    <div className="actions">
-                      <button className="primary" onClick={() => setAtHome(false)}>
-                        Resume
-                      </button>
-                      <button className="ghost" onClick={() => show(null)} disabled={busy}>
-                        Close case
-                      </button>
-                    </div>
-                  </section>
-                )
-              }
-              preview={
-                PREVIEW && <Preview report={PREVIEW} onOpen={openWorkedExample} busy={busy} />
-              }
-            />
+        {shown === 'investigations' && (
+          <Investigations
+            investigations={kept}
+            busy={busy}
+            notice={fileProblems}
+            current={openCaseCard}
+            onOpenFile={() => fileInput.current?.click()}
+            onSample={openDemo}
+            onHowVerdicts={openWorkedExample}
+            onOpen={openInvestigation}
+          />
+        )}
 
-            {kept.length === 0 && (
-              <>
-              <section className="steps" aria-label="How it works">
-                <article>
-                  <span className="step">1</span>
-                  <h2>AI proposes</h2>
-                  <p>
-                    Gemini Nano investigates on this device. The cloud is used only if you allow it,
-                    and you are asked every time before evidence is sent.
-                  </p>
-                </article>
-                <article>
-                  <span className="step">2</span>
-                  <h2>Code verifies</h2>
-                  <p>
-                    Each finding is checked against the records it cites: the events exist, are what
-                    the finding says they are, and match its times, accounts and computer names.
-                  </p>
-                </article>
-                <article>
-                  <span className="step">3</span>
-                  <h2>The analyst decides</h2>
-                  <p>
-                    Verified, rejected and unchecked findings are shown apart from the AI's own
-                    conclusion. Export a report you can keep.
-                  </p>
-                </article>
-              </section>
-
-              <p className="audience">
-                Built for incident responders and security consultants who want AI help with
-                authentication evidence without sending it to a cloud model by default.
-              </p>
-              </>
-            )}
-          </>
-        ) : (
+        {shown === 'case' && active && (
           <>
             <section className="casebar">
               <div>
                 <p className="eyebrow">
-                  {active.origin === 'demo' ? 'Sample investigation' : 'Case file'}
+                  <button className="link crumb" onClick={() => navigate('investigations')}>
+                    Investigations
+                  </button>{' '}
+                  / {active.origin === 'demo' ? 'Sample evidence' : 'Case file'}
                 </p>
                 <h1>{caseTitle(active)}</h1>
                 <p className="meta">
@@ -723,8 +650,8 @@ function App() {
               </p>
             )}
 
-            <nav className="tabs" role="tablist" aria-label="Investigation">
-              {TABS.map((t) => (
+            <nav className="tabs" role="tablist" aria-label="Investigation steps">
+              {TABS.map((t, i) => (
                 <button
                   key={t.id}
                   role="tab"
@@ -732,14 +659,17 @@ function App() {
                   className={tab === t.id ? 'tab active' : 'tab'}
                   onClick={() => setTab(t.id)}
                 >
+                  <span className="tab-step" aria-hidden="true">
+                    {i + 1}
+                  </span>
                   {t.label}
-                  {t.id === 'run' && busy && (
+                  {t.id === 'analysis' && busy && (
                     <>
                       <span className="running" aria-hidden="true" />
                       <span className="visually-hidden"> (running)</span>
                     </>
                   )}
-                  {t.id === 'findings' && result && (
+                  {t.id === 'analysis' && result && (
                     <span className="count">{result.report.findings.length}</span>
                   )}
                 </button>
@@ -748,6 +678,7 @@ function App() {
 
             {tab === 'evidence' && (
               <section className="card" role="tabpanel" aria-label="Evidence">
+                <h2>Evidence</h2>
                 <dl className="facts">
                   <dt>Case</dt>
                   <dd>{active.id}</dd>
@@ -775,156 +706,158 @@ function App() {
                   }))}
                 />
                 <div className="actions">
-                  <button className="primary" onClick={() => setTab('run')}>
-                    Next: run the investigation
+                  <button className="primary" onClick={() => setTab('analysis')}>
+                    Next: analyse the evidence
                   </button>
                 </div>
               </section>
             )}
 
-            {tab === 'run' && (
-              <section className="card" role="tabpanel" aria-label="Run">
-                <h2>Where should the AI run?</h2>
-                <div className="runcards" role="radiogroup" aria-label="Where the AI runs">
-                  <button
-                    role="radio"
-                    aria-checked={where === 'on_device'}
-                    className={where === 'on_device' ? 'runcard selected' : 'runcard'}
-                    onClick={() => setWhere('on_device')}
-                    disabled={busy}
-                  >
-                    <span className="runcard-head">
-                      <strong>On this device</strong>
-                      <span className="tag">Gemini Nano</span>
-                    </span>
-                    <span>
-                      A small model built into Chrome, running on this computer. The evidence
-                      stays here.
-                    </span>
-                    <span className={`state ${nano.tone}`}>Status: {nano.label}</span>
-                  </button>
-                  <button
-                    role="radio"
-                    aria-checked={where === 'in_cloud'}
-                    className={where === 'in_cloud' ? 'runcard selected' : 'runcard'}
-                    onClick={() => setWhere('in_cloud')}
-                    disabled={busy || !cloudAllowed}
-                  >
-                    <span className="runcard-head">
-                      <strong>In the cloud</strong>
-                      <span className="tag">Gemini, Firebase AI Logic</span>
-                    </span>
-                    <span>
-                      {CLOUD_MODEL}, a larger model in Google&apos;s cloud. You are asked before
-                      anything is sent, every time.
-                    </span>
-                    <span className={`state ${cloudAllowed ? cloud.tone : 'warn'}`}>
-                      {cloudAllowed ? `Status: ${cloud.label}` : 'Off for this case file'}
-                    </span>
-                  </button>
-                </div>
-                <p className="hint">
-                  The two models do not perform the same: on the same case they can propose
-                  different findings and a different classification. Whichever runs, code checks
-                  every finding against the evidence, and the findings name the model that wrote
-                  them.
-                </p>
-                {availability !== 'available' && where === 'on_device' && prepare()}
-                {active.origin === 'case file' && (
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={allowCloud}
+            {tab === 'analysis' && (
+              <div role="tabpanel" aria-label="Analysis">
+                {/* Findings lead once they exist; running again is the second step. */}
+                {result && (
+                  <ReportView
+                    report={result.report}
+                    showActions={false}
+                    onExport={() => exportReport(result.report)}
+                    onRecord={result.record ? () => download(result.record!) : undefined}
+                  />
+                )}
+                <section className="card" aria-label="Run the analysis">
+                  <h2>{result?.record ? 'Run the analysis again' : 'Run the analysis'}</h2>
+                  <p className="hint">Choose where the AI runs.</p>
+                  <div className="runcards" role="radiogroup" aria-label="Where the AI runs">
+                    <button
+                      role="radio"
+                      aria-checked={where === 'on_device'}
+                      className={where === 'on_device' ? 'runcard selected' : 'runcard'}
+                      onClick={() => setWhere('on_device')}
                       disabled={busy}
-                      onChange={(e) => {
-                        setAllowCloud(e.target.checked)
-                        if (!e.target.checked) setWhere('on_device')
-                        // Turning the cloud off withdraws a question already on screen.
-                        if (run.state === 'consent') setRun({ state: 'idle' })
-                      }}
-                    />
-                    Allow the cloud for this case. You are still asked before anything is sent.
-                  </label>
-                )}
-                <p className="hint">
-                  {cloudAllowed
-                    ? 'Evidence leaves this device only if you press Send. Nothing is sent automatically.'
-                    : 'The cloud is off for this case: it runs on this device or not at all. If Gemini Nano fails, the failure is recorded and nothing is sent.'}
-                </p>
-                <div className="actions">
-                  <button
-                    className="primary"
-                    onClick={() => start(where)}
-                    disabled={busy}
-                  >
-                    Run investigation
-                  </button>
-                </div>
-                {run.state === 'working' && (
-                  <Working where={run.where} since={run.since} events={active.events.length} />
-                )}
-                {run.state === 'consent' && (
-                  <div className="consent">
-                    <p className="warn">{run.detail}</p>
-                    <p>
-                      Send these {active.events.length} events to {CLOUD_MODEL} through Firebase
-                      AI Logic? Nothing has been sent yet.
-                    </p>
-                    <p className="warn">
-                      {CLOUD_DATA_TERMS}{' '}
-                      <a href={GEMINI_TERMS_URL} target="_blank" rel="noreferrer">
-                        Gemini API terms
-                      </a>
-                    </p>
-                    <div className="actions">
-                      <button
-                        className="primary"
-                        onClick={() => consent(run.request, run.reason)}
-                        disabled={!firebaseConfigured}
-                      >
-                        Send {active.events.length} events to the cloud
+                    >
+                      <span className="runcard-head">
+                        <strong>On this device</strong>
+                        <span className="tag">Gemini Nano</span>
+                      </span>
+                      <span>
+                        A small model built into Chrome, running on this computer. The evidence
+                        stays here.
+                      </span>
+                      <span className={`state ${nano.tone}`}>Status: {nano.label}</span>
+                    </button>
+                    <button
+                      role="radio"
+                      aria-checked={where === 'in_cloud'}
+                      className={where === 'in_cloud' ? 'runcard selected' : 'runcard'}
+                      onClick={() => setWhere('in_cloud')}
+                      disabled={busy || !cloudAllowed}
+                    >
+                      <span className="runcard-head">
+                        <strong>In the cloud</strong>
+                        <span className="tag">Gemini, Firebase AI Logic</span>
+                      </span>
+                      <span>
+                        {CLOUD_MODEL}, a larger model in Google&apos;s cloud. You are asked before
+                        anything is sent, every time.
+                      </span>
+                      <span className={`state ${cloudAllowed ? cloud.tone : 'warn'}`}>
+                        {cloudAllowed ? `Status: ${cloud.label}` : 'Off for this case file'}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="hint">
+                    The two models do not perform the same: on the same case they can propose
+                    different findings and a different classification. Whichever runs, code checks
+                    every finding against the evidence, and the findings name the model that wrote
+                    them.
+                  </p>
+                  {availability !== 'available' && where === 'on_device' && prepare()}
+                  {active.origin === 'case file' && (
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={allowCloud}
+                        disabled={busy}
+                        onChange={(e) => {
+                          setAllowCloud(e.target.checked)
+                          if (!e.target.checked) setWhere('on_device')
+                          // Turning the cloud off withdraws a question already on screen.
+                          if (run.state === 'consent') setRun({ state: 'idle' })
+                        }}
+                      />
+                      Allow the cloud for this case. You are still asked before anything is sent.
+                    </label>
+                  )}
+                  <p className="hint">
+                    {cloudAllowed
+                      ? 'Evidence leaves this device only if you press Send. Nothing is sent automatically.'
+                      : 'The cloud is off for this case: it runs on this device or not at all. If Gemini Nano fails, the failure is recorded and nothing is sent.'}
+                  </p>
+                  <div className="actions">
+                    <button className="primary" onClick={() => start(where)} disabled={busy}>
+                      Run analysis
+                    </button>
+                    {!result && (
+                      <button className="ghost" onClick={openWorkedExample} disabled={busy}>
+                        How verdicts work
                       </button>
-                      <button className="secondary" onClick={() => setRun({ state: 'declined' })}>
-                        Keep on this device
-                      </button>
+                    )}
+                  </div>
+                  {run.state === 'working' && (
+                    <Working where={run.where} since={run.since} events={active.events.length} />
+                  )}
+                  {run.state === 'consent' && (
+                    <div className="consent">
+                      <p className="warn">{run.detail}</p>
+                      <p>
+                        Send these {active.events.length} events to {CLOUD_MODEL} through Firebase
+                        AI Logic? Nothing has been sent yet.
+                      </p>
+                      <p className="warn">
+                        {CLOUD_DATA_TERMS}{' '}
+                        <a href={GEMINI_TERMS_URL} target="_blank" rel="noreferrer">
+                          Gemini API terms
+                        </a>
+                      </p>
+                      <div className="actions">
+                        <button
+                          className="primary"
+                          onClick={() => consent(run.request, run.reason)}
+                          disabled={!firebaseConfigured}
+                        >
+                          Send {active.events.length} events to the cloud
+                        </button>
+                        <button className="secondary" onClick={() => setRun({ state: 'declined' })}>
+                          Keep on this device
+                        </button>
+                      </div>
+                      {!firebaseConfigured && (
+                        <p className="hint">The cloud needs the Firebase web app config in .env.local.</p>
+                      )}
                     </div>
-                    {!firebaseConfigured && (
-                      <p className="hint">The cloud needs the Firebase web app config in .env.local.</p>
-                    )}
-                  </div>
-                )}
-                {run.state === 'declined' && (
-                  <p className="notice">Nothing was sent. The investigation stays on this device.</p>
-                )}
-                {run.state === 'failed' && (
-                  <div className="notice fail">
-                    <p>{run.error}</p>
-                    {run.record && (
-                      <button className="secondary" onClick={() => download(run.record!)}>
-                        Download the record of this failed run
-                      </button>
-                    )}
-                  </div>
-                )}
-              </section>
-            )}
+                  )}
+                  {run.state === 'declined' && (
+                    <p className="notice">Nothing was sent. The investigation stays on this device.</p>
+                  )}
+                  {run.state === 'failed' && (
+                    <div className="notice fail">
+                      <p>{run.error}</p>
+                      {run.record && (
+                        <button className="secondary" onClick={() => download(run.record!)}>
+                          Download the record of this failed run
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </section>
 
-            {tab === 'findings' &&
-              (result ? (
-                <ReportView
-                  report={result.report}
-                  showActions={false}
-                  onExport={() => exportReport(result.report)}
-                  onRecord={result.record ? () => download(result.record!) : undefined}
-                />
-              ) : (
-                <Empty onRun={() => setTab('run')} onExample={openWorkedExample} />
-              ))}
+              </div>
+            )}
 
             {tab === 'report' &&
               (result ? (
                 <section className="card" role="tabpanel" aria-label="Report">
-                  <h2>Keep a record of this investigation</h2>
+                  <h2>Investigation report</h2>
                   <div className="exports">
                     <div>
                       <h3>Investigation report</h3>
@@ -954,22 +887,24 @@ function App() {
                   <p className="hint">Both files are saved to your disk and contain the evidence.</p>
                 </section>
               ) : (
-                <Empty onRun={() => setTab('run')} onExample={openWorkedExample} />
+                <Empty onAnalyse={() => setTab('analysis')} onExample={openWorkedExample} />
               ))}
           </>
         )}
       </main>
 
-      <footer className="footer">
-        <p>Project Studio by PHANG Group.</p>
-        <p>
-          MITRE ATT&amp;CK® references: {ATTACK_NOTICE}{' '}
-          <a href={ATTACK_TERMS_URL} target="_blank" rel="noreferrer">
-            Terms of use
-          </a>
-          .
-        </p>
-      </footer>
+      <SiteFooter
+        system={systemDetails}
+        notice={
+          <>
+            MITRE ATT&amp;CK® references: {ATTACK_NOTICE}{' '}
+            <a href={ATTACK_TERMS_URL} target="_blank" rel="noreferrer">
+              Terms of use
+            </a>
+            .
+          </>
+        }
+      />
     </>
   )
 
@@ -1041,58 +976,21 @@ function Working({ where, since, events }: { where: 'device' | 'cloud'; since: n
   )
 }
 
-// What a result looks like, before any case is open: the worked example's
-// real verdicts, labelled as the example, never as a model's run.
-function Preview({ report, onOpen, busy }: { report: Report; onOpen: () => void; busy: boolean }) {
-  const total = report.findings.length
+function Empty({ onAnalyse, onExample }: { onAnalyse: () => void; onExample: () => void }) {
   return (
-    <aside className="preview" aria-label="Worked example result">
-      <p className="preview-label">
-        Worked example · simulated data · written by the Project Studio team, no AI ran
-      </p>
-      <p className="preview-title">
-        <strong>
-          {report.counts.verified} of {total} findings verified
-        </strong>{' '}
-        against the evidence they cite
-      </p>
-      <div className="tiles compact" aria-label="Verdicts, decided by code">
-        {VERDICTS.map((v) => (
-          <div key={v} className={`tile ${v}`}>
-            <span>{VERDICT_LABEL[v]}</span>
-            <strong>{report.counts[v]}</strong>
-          </div>
-        ))}
-      </div>
-      <ul className="preview-findings">
-        {report.findings.slice(0, 4).map((f) => (
-          <li key={f.number}>
-            <span className={`verdict ${f.verdict}`}>{VERDICT_LABEL[f.verdict]}</span>
-            <span className="preview-claim">{f.claim}</span>
-          </li>
-        ))}
-      </ul>
-      <button className="secondary" onClick={onOpen} disabled={busy}>
-        See how verification works
-      </button>
-    </aside>
-  )
-}
-
-function Empty({ onRun, onExample }: { onRun: () => void; onExample: () => void }) {
-  return (
-    <section className="card empty" role="tabpanel">
-      <h2>No findings yet</h2>
+    <section className="card empty" role="tabpanel" aria-label="Report">
+      <h2>No report yet</h2>
       <p className="hint">
-        Run the investigation to get the AI&apos;s findings, each checked against the evidence.
-        Or open the worked example to see every kind of verdict.
+        Run the analysis to get the AI&apos;s findings, each checked against the evidence; the
+        report is made from them. Or see how verdicts work on the sample evidence, with no AI
+        involved.
       </p>
       <div className="actions">
-        <button className="primary" onClick={onRun}>
-          Go to Run
+        <button className="primary" onClick={onAnalyse}>
+          Go to Analysis
         </button>
         <button className="secondary" onClick={onExample}>
-          See how verification works
+          How verdicts work
         </button>
       </div>
     </section>

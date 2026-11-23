@@ -18,7 +18,7 @@ import { verifyProposal } from '../lib/verify'
 import DEMO_CASE from './sample-case.json?raw'
 import { WORKED_EXAMPLE, WORKED_EXAMPLE_TEXT } from './worked-example'
 
-// The worked example: a proposal the Project Studio team wrote about the demo
+// The worked example: a proposal the AEMAS team wrote about the demo
 // case. These tests check that it reaches all four verdicts through the same
 // code as a model's proposal, and that it is never presented as one.
 
@@ -168,7 +168,7 @@ describe('it is never presented as a model result', () => {
     const html = reportHtml(report, 'now')
     expect(html).toContain('<title>Worked example (analyst-authored, no model ran): sample-infopro-auth</title>')
     expect(html).toContain('No model ran.')
-    expect(html).toContain('Claim, written by the Project Studio team:')
+    expect(html).toContain('Claim, written by the AEMAS team:')
     expect(html).toContain('none: no model ran')
     for (const modelWords of ['written by the model', "The model's proposal", 'Raw model output', 'Ran on this device', 'Ran in the cloud', 'AI proposes']) {
       expect(html).not.toContain(modelWords.replace(/'/g, '&#39;'))
@@ -179,7 +179,7 @@ describe('it is never presented as a model result', () => {
   it('the page says no model ran and offers no run record', () => {
     const html = page(example())
     expect(html).toContain('No model ran.')
-    expect(html).toContain('Claim, written by the Project Studio team:')
+    expect(html).toContain('Claim, written by the AEMAS team:')
     expect(html).not.toContain('Download run record')
     expect(html).not.toContain('written by the model')
     expect(html).not.toContain('Inference source')
@@ -192,10 +192,10 @@ describe('it is never presented as a model result', () => {
     expect(model.author).toBe('model')
     const html = reportHtml(model, 'now')
     expect(html).not.toContain('No model ran')
-    expect(html).not.toContain('Project Studio team')
+    expect(html).not.toContain('AEMAS team')
     expect(reportFileName(model)).not.toContain('analyst-authored')
     expect(page(model)).not.toContain('No model ran')
-    expect(page(model)).not.toContain('Project Studio team')
+    expect(page(model)).not.toContain('AEMAS team')
   })
 
   it('makes no run record: the worked example yields a report only', () => {
