@@ -54,9 +54,11 @@ No file is needed. In Chrome:
 worked example: a proposal written by the AEMAS team, with no AI involved,
 that produces all four verdicts.
 
-If your machine cannot run Gemini Nano, use the cloud path after consent. The
-sample case is simulated: InfoPro and PHANG Group are the author's own
-organisation and product, and InfoPro has had no such incident.
+If your machine cannot run Gemini Nano, the page says so in **Analysis**:
+use the cloud path after consent, or **How verdicts work**, which needs no
+AI at all. Nothing is sent to the cloud without that consent, and there is no
+sign-in. The sample case is simulated: InfoPro and PHANG Group are the
+author's own organisation and product, and InfoPro has had no such incident.
 
 ## How it works
 
@@ -173,6 +175,21 @@ runs remain 3 of 3. The table shows the run as it was recorded; the record is
 unchanged. Details and every re-checked record: `docs/DECISIONS.md`
 (2026-11-17).
 
+**Production, 23 November 2026, one run each** on
+`https://project.phang.store`, in desktop Chrome 157 on the same Mac (records
+re-checked against the code; `docs/DECISIONS.md`):
+
+| | Cloud, `gemini-3.5-flash-lite` | On device, Gemini Nano |
+| --- | --- | --- |
+| Where (SDK), mode | `in_cloud`, `prefer_in_cloud`, after consent | `on_device`, `only_on_device`, no consent |
+| Findings | 3 | 8 |
+| Verified / Rejected / Contradicted / Unchecked | 3 / 0 / 0 / 0 | 1 / 2 / 0 / 5 |
+| Latency | 3.5 s | 96.4 s |
+
+Nano typed six of its eight findings `other`, which has no rule and is never
+verified; two named a time or an account that their cited events do not
+contain and repeated earlier findings, and were rejected.
+
 **LANL evaluation, 12 November 2026** (`docs/DECISIONS.md`). One Nano run,
 on-device, on each of two cases built from LANL's public authentication data
 by a selection rule frozen before any run; labels applied only after both
@@ -234,8 +251,10 @@ npm run lint
 npm run build   # type check and production build
 ```
 
-**Deploy** to your own project with the Firebase CLI, for example
-`npx firebase-tools hosting:channel:deploy preview --project <your-project>`.
+**Deploy** to your own project with the Firebase CLI: a preview channel with
+`npx firebase-tools hosting:channel:deploy preview --project <your-project>`,
+or production with `npx firebase-tools deploy --only hosting --project
+<your-project>`. The hosted app runs on Firebase Hosting with a custom domain.
 
 Case files: format and limits in `docs/CASE_FILE.md`.
 

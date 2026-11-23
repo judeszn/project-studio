@@ -2016,3 +2016,86 @@ tenant isolation, audit, retention and a security review are decided; file
 import kept. Receiving selected events is not monitoring, and is not
 described as such. The README's "Planned, not built" row points to it. No
 application code changed.
+
+### Final engineering closeout (2026-11-23)
+
+Under the owner's closeout instruction of 2026-11-23, which covered the
+commit, push and deployment.
+
+**Release `1962273`** (style only): black, white and neutral greys in light
+and dark mode, with green, amber and red kept for the verdicts and data-status
+warnings; the narrow-screen menu no longer reaches the screen edge (35 px
+clear to the right of "Investigations" at 319 px); the unused `Panel`
+component and `.card-head` rule removed. 305 tests, lint, both type checks and
+the build pass. Pushed to `feat/gs03-investigation`, `main` fast-forwarded,
+and `live` released at 09:39 WAT. Served by
+`project-studio-4c811.web.app`, `project-studio-4c811.firebaseapp.com` and
+`project.phang.store`, byte-identical to the local build:
+
+| File | SHA-256 |
+| --- | --- |
+| `index.html` | `18442d4cd7fc5ef6…` |
+| `assets/index-BUpfb0U7.js` | `6ec4d02f1821d1c2…` (same content as the `cfa11fa` release) |
+| `assets/index-CV6C9pl7.css` | `ce3005100216e1d7…` |
+
+The build carried the reCAPTCHA Enterprise site key and no App Check debug
+token. HTTPS verifies, HTTP redirects to HTTPS, and the CNAME, root A record
+and Zoho MX records are unchanged. Rollback: earlier Hosting versions stay in
+the site's release history, and each earlier release is a commit
+(`fbc5088`, `cfa11fa`) that can be rebuilt and redeployed.
+
+**Acceptance on `project.phang.store`, simulated sample.** Run in the
+owner's own Chrome 157 profile, driven through the Claude in Chrome
+extension, on the owner's Mac.
+
+| | Gemini Nano | Cloud |
+| --- | --- | --- |
+| Where (SDK), mode | `on_device`, `only_on_device` | `in_cloud`, `prefer_in_cloud` |
+| Consent | not given; nothing sent | given in the app's prompt, which showed the free-tier data terms first |
+| Findings; verified / rejected / contradicted / unchecked | 8; 1 / 2 / 0 / 5 | 3; 3 / 0 / 0 / 0 |
+| Latency | 96.4 s | 3.5 s |
+| Record | `sample-infopro-auth.on-device.20261123T084115Z.run.json`, SHA-256 `9f15ec81…27bb5633`, backed up read-only beside the earlier records | read in the page; not saved to disk (Chrome held a second automatic download) |
+
+The Nano record was re-checked with the repository's code: the case hash
+equals `src/data/sample-case.json`, both prompts are byte-identical to what
+the code builds, and re-running the verifier on the raw output reproduces the
+recorded verification exactly. The cloud record carries the same case and
+prompt hashes. The six findings Nano typed `other` were not verified; two
+findings that named a time or an account their cited events do not contain,
+and repeated earlier findings, were rejected. The cloud run completing shows
+the App Check exchange succeeded in production. Both exported reports carry
+the AEMAS name, where the model ran and the consent. Investigations listed
+both runs.
+
+**Without Gemini Nano** (the desktop app's browser pane, which has no Prompt
+API), on production:
+
+- The Analysis step shows "Status: not supported here".
+- Sample, **On this device**: the app asks for consent to use the cloud
+  ("This device or browser cannot run Gemini Nano"); **Keep on this device**
+  gives "Nothing was sent", and no request reached the AI endpoint.
+- A synthetic case file opened through the file input: the cloud card is
+  disabled ("Off for this case file"); an on-device run fails with "Nothing
+  was sent to the cloud", and the failed run's record is offered. No request
+  reached the AI endpoint.
+- A malformed case file is refused with its three problems listed, and
+  nothing in it is used.
+- Empty states: "No investigations in this session yet" and "No report yet".
+
+**App Check enforcement.** In this project a wrong App Check key made every
+token exchange fail and every cloud request fail (2026-11-14 to 2026-11-15);
+with the right key the production cloud run completes. The console's
+enforcement setting for Firebase AI Logic was not viewed in this session.
+
+**Repository.** A fresh clone of `main` installs with `npm ci`, passes 305
+tests, lints and builds without any `.env` file. No secrets in tracked files
+or the build; no `.env*.local` file was ever committed. Licence Apache-2.0
+(GitHub shows it). GitHub's About section has no website and its description
+predates the AEMAS name; that is the owner's to change. Submission text,
+judges' testing instructions and a checklist against the Official Rules:
+`docs/SUBMISSION.md`.
+
+**Not done in this session:** the offline Nano run (it needs the owner's
+machine and Wi-Fi switch; the network is never faked), the console check of
+App Check enforcement, the cause of the "Not secure" warning in the owner's
+profile, the video and the Devpost form.

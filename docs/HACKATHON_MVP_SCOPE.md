@@ -321,7 +321,9 @@ production-domain items added at the end.
       the README states the limit._
 - [ ] Offline on-device run shown with the network disconnected. _Approved
       2026-11-17: on the final hosted URL after the production deployment,
-      in the owner's own Chrome, OS Wi-Fi off, Network tab visible._
+      in the owner's own Chrome, OS Wi-Fi off, Network tab visible. Still
+      open on 2026-11-23: it needs the owner's machine and Wi-Fi switch;
+      recording it in the video covers both_
 - [x] Investigation report a reader can follow without the app open, with
       export (four verdicts with reasons, cited and uncited evidence with
       original records, escaped self-contained HTML; `src/lib/report.ts`,
@@ -366,12 +368,14 @@ production-domain items added at the end.
       fast-forwarded to `75e30cb` and then `fbc5088` with the owner's
       approval, no force-push (2026-11-20). A fresh clone of `main` installs,
       passes every test and builds (2026-11-23)_
-- [ ] README with run instructions, value proposition, evaluation results and
+- [x] README with run instructions, value proposition, evaluation results and
       disclosure of pre-existing work. _Rewritten 2026-11-17; hosted link and
-      the AEMAS walkthrough added 2026-11-23; ticked once committed to
-      `main`_
+      the AEMAS walkthrough added 2026-11-23, on `main` since `cfa11fa`;
+      production results of 2026-11-23 added_
 - [ ] Demo video (at most 3 minutes, public YouTube, English)
-- [ ] Devpost text description and submission, on Nov 28
+- [ ] Devpost text description and submission, on Nov 28. _Text, judges'
+      testing instructions and a checklist against the rules are ready in
+      `docs/SUBMISSION.md` (2026-11-23)_
 
 **Production domain: `project.phang.store`** (owner's decision, 2026-11-17;
 no DNS change, Hosting change or production deploy without approval)
@@ -389,11 +393,15 @@ no DNS change, Hosting change or production deploy without approval)
       re-checked 2026-11-23)
 - [x] DNS propagated, domain verified, SSL certificate active (Google Trust
       Services WR3, valid to 2027-02-16; HTTP redirects to HTTPS)
-- [ ] Over HTTPS: the page loads, `exchangeRecaptchaEnterpriseToken` returns
+- [x] Over HTTPS: the page loads, `exchangeRecaptchaEnterpriseToken` returns
       200 in a normal Chrome tab, one consented cloud run and one Nano run
-      succeed
-- [ ] README and Devpost use `https://project.phang.store`. _README: added
-      2026-11-23, uncommitted; Devpost: not yet written_
+      succeed. _2026-11-23, in the owner's own Chrome profile (driven through
+      the Claude in Chrome extension): the consented cloud run completed,
+      which requires the App Check exchange to succeed; the Nano run
+      completed on the device (`docs/DECISIONS.md`)_
+- [ ] README and Devpost use `https://project.phang.store`. _README: yes,
+      on `main`; Devpost text in `docs/SUBMISSION.md` uses it; the form is
+      not yet submitted_
 - [ ] A "Not secure" warning the owner saw in their own Chrome profile
       explained. _A clean Chrome 157 profile reports the site `secure` with no
       issues (2026-11-23); cause in the owner's profile not yet established_
@@ -403,10 +411,13 @@ no DNS change, Hosting change or production deploy without approval)
 - [x] Built and checked locally: 305 tests, lint, type check, build; checked
       in the browser at 375, 768 and 1280 px, light and dark, by keyboard
       (`docs/DECISIONS.md`, 2026-11-23)
-- [ ] Committed, pushed, `main` fast-forwarded, and deployed, each with the
-      owner's approval; `live` serves exactly the checked files
+- [x] Committed, pushed, `main` fast-forwarded, and deployed, each with the
+      owner's approval; `live` serves exactly the checked files (`cfa11fa`,
+      then `1962273` with the black-and-white styling, 2026-11-23)
 - [ ] Acceptance in the owner's Chrome on `project.phang.store`: one Nano
-      run, one consented cloud run, and the offline Nano run
+      run, one consented cloud run, and the offline Nano run. _Nano and cloud
+      runs done 2026-11-23, records re-checked against the code; the offline
+      run remains (see above)_
 
 ## Risks
 
