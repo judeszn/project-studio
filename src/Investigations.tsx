@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { CaseFileHelp } from './FileRefusal'
 import type { Report } from './lib/report'
 import { SCREEN } from './site'
 import { ScreenNote } from './ui'
@@ -55,6 +56,9 @@ export function Investigations({
           <p className="hint">
             A JSON case file of authentication events. It is read and checked in this browser;
             opening it uploads nothing, and a file that fails a check is refused.
+          </p>
+          <p className="hint">
+            <CaseFileHelp />
           </p>
           <button className="primary" onClick={onOpenFile} disabled={busy}>
             Open evidence file

@@ -31,6 +31,11 @@ export const SCREEN = {
   caseStudy: 'Explore the 2024 Change Healthcare incident and the role of authentication evidence.',
 } as const
 
+// The case-file format, for anyone writing a file by hand or with a tool, and
+// the name the sample case file downloads as (owner's decision, 2026-11-24).
+export const CASE_FILE_DOC_URL = 'https://github.com/judeszn/project-studio/blob/main/docs/CASE_FILE.md'
+export const SAMPLE_CASE_DOWNLOAD = 'aemas-sample-case.json'
+
 // The case study's primary source.
 export const TESTIMONY = {
   label:

@@ -3,7 +3,7 @@ import { InferenceMode } from 'firebase/ai'
 import DEMO_CASE from './data/sample-case.json?raw'
 import { WORKED_EXAMPLE_TEXT } from './data/worked-example'
 import { ATTACK_NOTICE, ATTACK_TERMS_URL } from './lib/attack'
-import { MAX_CASE_BYTES, parseCaseFile } from './lib/casefile'
+import { MAX_CASE_BYTES, hasFlatRecords, parseCaseFile } from './lib/casefile'
 import type { CaseSource, LoadedCase, Provenance } from './lib/casefile'
 import { ai, appCheckMode, firebaseConfigured } from './lib/firebase'
 import {
@@ -27,6 +27,7 @@ import type { FindingType, LogEvent } from './lib/schema'
 import { verifyProposal } from './lib/verify'
 import type { Verification } from './lib/verify'
 import { CaseStudy } from './CaseStudy'
+import { FileRefusal } from './FileRefusal'
 import { Investigations } from './Investigations'
 import type { Investigation } from './Investigations'
 import { Overview } from './Overview'
@@ -224,7 +225,8 @@ function App() {
   const [tab, setTab] = useState<Tab>('evidence')
   const [where, setWhere] = useState<Request>('on_device')
   const [allowCloud, setAllowCloud] = useState(false)
-  const [fileErrors, setFileErrors] = useState<string[]>([])
+  // Why the last file was refused, if it was.
+  const [refusal, setRefusal] = useState<{ errors: string[]; flatRecords: boolean } | null>(null)
   const [availability, setAvailability] = useState('checking…')
   const [init, setInit] = useState<Step>({ state: 'idle' })
   const [progress, setProgress] = useState<number | null>(null)
@@ -334,9 +336,9 @@ function App() {
   // the current case stays open.
   async function openFile(file: File | undefined) {
     if (!file) return
-    setFileErrors([])
+    setRefusal(null)
     if (file.size > MAX_CASE_BYTES) {
-      setFileErrors([`the file is larger than ${MAX_CASE_BYTES / 1024 / 1024} MB`])
+      setRefusal({ errors: [`the file is larger than ${MAX_CASE_BYTES / 1024 / 1024} MB`], flatRecords: false })
       return
     }
     const bytes = await file.arrayBuffer()
@@ -344,12 +346,12 @@ function App() {
     try {
       text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
     } catch {
-      setFileErrors(['the file is not UTF-8 text'])
+      setRefusal({ errors: ['the file is not UTF-8 text'], flatRecords: false })
       return
     }
     const parsed = parseCaseFile(text)
     if (!parsed.ok) {
-      setFileErrors(parsed.errors)
+      setRefusal({ errors: parsed.errors, flatRecords: hasFlatRecords(text) })
       return
     }
     show(openCase(parsed.case, file.name, await sha256Hex(bytes)))
@@ -358,10 +360,10 @@ function App() {
   // The simulated sample case ships with the page and goes through the same
   // checks as a file the analyst opens.
   async function demoCase(): Promise<ActiveCase | null> {
-    setFileErrors([])
+    setRefusal(null)
     const parsed = parseCaseFile(DEMO_CASE)
     if (!parsed.ok) {
-      setFileErrors(parsed.errors)
+      setRefusal({ errors: parsed.errors, flatRecords: false })
       return null
     }
     return openCase(parsed.case, 'sample-case.json', await sha256Hex(DEMO_CASE), 'demo')
@@ -402,7 +404,7 @@ function App() {
     setTab('evidence')
     setWhere('on_device')
     setAllowCloud(false)
-    setFileErrors([])
+    setRefusal(null)
     setRun({ state: 'idle' })
     setResult(null)
   }
@@ -503,16 +505,7 @@ function App() {
   const nano = nanoStatus(availability)
   const cloud = cloudStatus()
 
-  const fileProblems = fileErrors.length > 0 && (
-    <div className="notice fail" role="alert">
-      <p>The file was not opened. Nothing in it was used.</p>
-      <ul>
-        {fileErrors.map((error) => (
-          <li key={error}>{error}</li>
-        ))}
-      </ul>
-    </div>
-  )
+  const fileProblems = refusal && <FileRefusal {...refusal} />
 
   // What the system runs on, for an analyst who needs it: folded into the
   // footer, never shown as a feature.

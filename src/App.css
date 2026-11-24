@@ -317,6 +317,44 @@ pre {
   background: var(--fail-soft);
 }
 
+/* A refused file: plain text first, then the reasons, the rest folded away. */
+.refusal {
+  color: var(--text);
+}
+
+.refusal p {
+  margin: 0.4rem 0;
+}
+
+.refusal-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.refusal-errors {
+  margin: 0.25rem 0;
+  padding-left: 2.25rem;
+  color: var(--fail);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.refusal-more > summary {
+  min-height: 40px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.refusal-more > summary .when-open,
+.refusal-more[open] > summary .when-closed {
+  display: none;
+}
+
+.refusal-more[open] > summary .when-open {
+  display: inline;
+}
+
 .badge {
   display: inline-block;
   margin-left: 0.5rem;

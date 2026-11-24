@@ -116,6 +116,26 @@ function checkEvent(entry: unknown, at: string, errors: string[]) {
   }
 }
 
+// Whether a file holds its events as flat records, such as
+// { "events": [{ "timestamp": ..., "user": ..., "outcome": ... }] } or a bare
+// list of them: the commonest file that is not a case file. It only explains a
+// refusal, so the page can say what a case-file event looks like; it never
+// opens, repairs or converts a file.
+export function hasFlatRecords(text: string): boolean {
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    return false
+  }
+  const list = Array.isArray(data) ? data : isObject(data) ? data.events : undefined
+  return (
+    Array.isArray(list) &&
+    list.length > 0 &&
+    list.every((e) => isObject(e) && Object.keys(e).length > 0 && !('evidence' in e) && !('provenance' in e))
+  )
+}
+
 export function parseCaseFile(text: string): CaseFileResult {
   if (text.length > MAX_CASE_BYTES) {
     return { ok: false, errors: [`the file is larger than ${MAX_CASE_BYTES / 1024 / 1024} MB`] }

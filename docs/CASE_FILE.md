@@ -8,7 +8,8 @@ analyst allows the cloud for that case and then consents to the send.
 `npm run lanl -- case` writes this format from the LANL authentication data.
 Any tool can write it. The reader is `src/lib/casefile.ts`. A complete
 example is the simulated sample case, `src/data/sample-case.json`, which the page
-opens with **Try the sample investigation**.
+opens with **Use sample evidence (simulated)** and offers as a file to start
+from with **Download the sample case file**.
 
 ## Format
 
@@ -97,6 +98,23 @@ used, when:
 The last rule is deliberate. A field the format does not know (ground-truth
 labels, say) is not silently ignored or passed on; the file does not open.
 Nothing is repaired, guessed or dropped.
+
+The page says that the file is not in the AEMAS case-file format and that
+nothing in it was used, then lists the reasons: the first 10, with the rest
+behind **Show all**. When the events are flat records (for example
+`{ "events": [{ "timestamp": …, "user": …, "outcome": … }] }`), it also says
+that every event needs `evidence` and `provenance`. It offers the sample case
+file and this page. It never converts or repairs the file.
+
+## Test files made with an AI tool
+
+An AI tool can generate fictional events for testing, labelled as synthetic
+in `source.dataset`. Provenance is different: it must be the record the row
+was derived from, with its real line number. So ask the AI tool only for the
+records, then build the case file from the generated file with a script, so
+that code, not the AI, writes each event's `provenance`. A valid case file
+shows that each row can be traced to a record in the file it names; it does
+not show that the records are genuine.
 
 ## What reaches a model
 

@@ -44,6 +44,12 @@ describe('Investigations', () => {
     expect(html).toContain('How verdicts work')
   })
 
+  it('offers the sample case file and the format before a file is opened', () => {
+    const html = page([])
+    expect(html).toContain('Download the sample case file')
+    expect(html).toContain('case-file format')
+  })
+
   it('with no runs, lists nothing and says so', () => {
     const html = page([])
     expect(html).toContain('No investigations in this session yet.')
