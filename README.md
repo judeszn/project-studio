@@ -4,11 +4,12 @@
 event investigation and evidence verification. This repository keeps the
 project's working name, Project Studio.
 
-AEMAS helps an analyst investigate a technical security incident from the
-evidence they supply. An AI model proposes what happened; code checks
-every proposed finding against the records it cites; the analyst decides.
+AEMAS helps a SOC investigate a technical security incident from the
+evidence it supplies. Gemini Nano, on the analyst's own machine, proposes
+what happened (Gemini in the cloud only after consent); a deterministic engine
+checks every proposed finding against the records it cites; the SOC decides.
 
-**AI proposes. Code verifies. The analyst decides.**
+**Gemini Nano proposes. Deterministic engine verifies. The SOC decides.**
 
 - **What it does.** You open a case of security events. A model proposes
   findings, an explanation, a classification and recommended actions. Each
@@ -36,9 +37,11 @@ Built for #BuildHybridAI 2026 (Web/Chrome) by Boluwatife Faturoti, PHANG Group.
 
 No file is needed. In Chrome:
 
-1. Open the app. **Overview** states the problem, the workflow and the
-   current scope, followed by the **Case Study** (the 2024 Change Healthcare
-   attack, from the public record).
+1. Open the app. **Overview** shows how an investigation works, real verdicts
+   from the worked example, the checks and the standards AEMAS maps to (NIST
+   SP 800-61 Rev. 3, SANS PICERL, MITRE ATT&CK; references, not a compliance
+   claim). **Case Study** covers the 2024 Change Healthcare attack, from the
+   public record. Every screen opens with one sentence on what happens there.
 2. Choose **Start an Investigation**, then **Use sample evidence
    (simulated)**: 18 simulated authentication events, built into the page.
 3. **Evidence** shows each event with its original record.
@@ -246,7 +249,7 @@ console; register it under App Check, then set it in
 **Checks:**
 
 ```bash
-npm test        # 305 tests
+npm test        # 318 tests
 npm run lint
 npm run build   # type check and production build
 ```

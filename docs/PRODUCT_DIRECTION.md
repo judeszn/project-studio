@@ -3,10 +3,10 @@
 AEMAS (AI Event Matching and Analysis System), by PHANG Group, is an
 AI-assisted security investigation and evidence verification product. It
 takes security evidence, has AI propose what happened, checks every proposed
-finding against the evidence in code, and leaves the decision to the analyst.
+finding against the evidence in code, and leaves the decision to the SOC.
 The repository and the Firebase project keep the working name Project Studio.
 
-**AI proposes. Code verifies. The analyst decides.**
+**Gemini Nano proposes. Deterministic engine verifies. The SOC decides.**
 
 The authentication investigation is the first working capability, not the
 whole product. This document separates what exists in this build from what is

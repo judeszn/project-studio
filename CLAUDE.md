@@ -6,8 +6,8 @@ investigation of technical security incidents, built solo for
 events (a JSON case file, or the simulated sample); Gemini Nano on the device,
 or Gemini in the cloud after the analyst's consent, proposes findings through
 Firebase AI Logic; deterministic TypeScript checks every finding against the
-records it cites; the analyst decides. **AI proposes. Code verifies. The
-analyst decides.**
+records it cites; the SOC decides. **Gemini Nano proposes. Deterministic
+engine verifies. The SOC decides.**
 
 Product direction (Option C: accept broadly, verify narrowly):
 `docs/PRODUCT_DIRECTION.md`. Decisions and evidence: `docs/DECISIONS.md`;
@@ -63,14 +63,25 @@ Node.js 24.12 or later (`.nvmrc`); the installed Firebase SDK requires it.
   not shown in the app, which shows only what the product does (owner's
   decision, 2026-11-20); where the docs describe them, they are labelled
   Planned. Do not build them before the submission.
-- The interface (owner's decisions, 2026-11-23): AEMAS by PHANG Group, full
-  name "AI Event Matching and Analysis System", never "Monitoring". Main
-  navigation Overview, Case Study, Investigations; an open case has Evidence,
-  Analysis, Report. The home page names no model or platform (Gemini,
-  Firebase): how the AI runs is shown in Analysis and the footer's system
-  details. The case study keeps public record, hypothetical use and limits
-  apart, and cites its source. The run-record format ID stays
-  `project-studio.run-record/1`.
+- The interface (owner's decisions, 2026-11-23, revised 2026-11-24): AEMAS by
+  PHANG Group, full name "AI Event Matching and Analysis System", never
+  "Monitoring". The name is the logo: a bold AEMAS wordmark with "Security
+  Investigation & Event Matching" under it, no graphic mark. Two themes:
+  light (off-white, one restrained blue) and dark (charcoal and slate, never
+  pure black); a small icon at the header's right overrides the system setting
+  for the page, and nothing is written to browser storage. Main navigation
+  Overview, Case Study (a page of its own),
+  Investigations; an open case has Evidence, Analysis, Report. Every screen
+  opens with one plain sentence (`SCREEN` in `src/site.ts`). The home page
+  (`src/home.ts`) has five blocks: hero, how it works, verdicts from the
+  worked example, method and standards, case study link. Slogan: "Gemini Nano
+  proposes. Deterministic engine verifies. The SOC decides." Name Gemini Nano
+  without a version number (Chrome manages the installed model); the home page
+  names no platform (Firebase). Standards: "maps to" or "supports", never
+  "complies"; NIST wording quoted verbatim; RS.AN-03 only in part. The SOC
+  decides; no "HOC", and no role AEMAS has no workflow for. The case study
+  keeps public record, hypothetical use and limits apart, and cites its
+  source. The run-record format ID stays `project-studio.run-record/1`.
 - Internal deployment notes stay out of the repository.
 - This repository is separate from the ADTC submission. Never modify
   `~/Desktop/eulermind-adtc-submission`.

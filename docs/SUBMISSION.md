@@ -9,9 +9,9 @@ a checklist against the Official Rules. Every claim here is in the README or
 
 **AEMAS: AI Event Matching and Analysis System**
 
-Evidence-backed security investigations: AI proposes findings, code checks
-each one against the original records, and the analyst decides. Gemini Nano
-runs on the device; the cloud only after consent.
+Evidence-backed security investigations. Gemini Nano proposes. Deterministic
+engine verifies. The SOC decides. Gemini Nano runs on the device; cloud
+Gemini only after consent.
 
 ## Links
 
@@ -62,7 +62,7 @@ an attack happened.
 
 ### Case study
 
-The home page explains the problem through the 2024 Change Healthcare attack,
+The Case Study page explains the problem through the 2024 Change Healthcare attack,
 which began with compromised credentials used on a remote-access portal
 without multi-factor authentication (from the UnitedHealth Group CEO's
 congressional testimony of 1 May 2024). It separates the public record from a
@@ -177,7 +177,7 @@ the free tier of the Gemini Developer API.
 | --- | --- | --- |
 | Gen AI app using Firebase AI Logic, with App Check | Done | `src/lib/hybrid.ts` calls `getGenerativeModel(...).generateContent`; App Check with reCAPTCHA Enterprise; consented cloud run in production, 2026-11-23 |
 | Web (Chrome): Gemini Nano through Firebase AI Logic | Done | Nano run in production, `inferenceSource: on_device`, 2026-11-23 |
-| Installs and runs; works as the video and text describe | Done for the text | Fresh clone of `main` installs, passes 305 tests and builds; the README's steps match the live app. The video must show the same interface |
+| Installs and runs; works as the video and text describe | Done for the text | Fresh clone of `main` installs, passes 318 tests and builds; the README's steps match the live app. The video must show the same interface |
 | Pre-existing work disclosed | Done | README "Pre-existing work"; this file |
 | Authorised third-party data | Done | LANL data public (cited); not in the repository; sample data simulated |
 | Free access for judges until judging ends (Dec 16) | Done; keep it up | Hosted app, no sign-in, Firebase Hosting |

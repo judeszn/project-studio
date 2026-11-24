@@ -2099,3 +2099,92 @@ judges' testing instructions and a checklist against the Official Rules:
 machine and Wi-Fi switch; the network is never faked), the console check of
 App Check enforcement, the cause of the "Not secure" warning in the owner's
 profile, the video and the Devpost form.
+
+### Home page, slogan and screen sentences (owner's decisions, 2026-11-24)
+
+Supersedes, from the 2026-11-23 interface entry: the home page that led with
+a problem statement and named no model, the case study as a section of the
+home page, and the motto "AI proposes. Code verifies. The analyst decides."
+in the app's pages, README, `docs/SUBMISSION.md`, `docs/PRODUCT_DIRECTION.md`,
+CLAUDE.md and the page description. Argued with the owner and locked; the
+owner then changed "Code verifies" to "Deterministic engine verifies".
+
+- **Slogan:** "Gemini Nano proposes. Deterministic engine verifies. The SOC
+  decides." Under it: "On-device inference through Chrome. Cloud Gemini only
+  with your consent." The SOC decides: not "HOC" (not a recognised term), and
+  no Head of Security or CISO as decider, since AEMAS has no roles or
+  escalation workflow.
+- **Home page, five blocks** (`src/Overview.tsx`, wording in `src/home.ts`):
+  hero; how it works (five steps; step 1 says "open", since opening a case
+  file uploads nothing); verification (three questions, then one real finding
+  per verdict from the worked example, its claim and cited events read from
+  `src/data/worked-example.ts`, and a test checking each row against the
+  verifier's verdict and reasons); method and standards; a case study link.
+  The problem story is gone from the home page.
+- **Case Study** is a page of its own; its content is unchanged.
+- **Screen sentences** (`SCREEN` in `src/site.ts`): one plain sentence at the
+  top of Investigations, Evidence, Analysis, Report, How verdicts work and
+  Case Study. Analysis says "Gemini", not "Gemini Nano", since a run there may
+  use either model.
+- **Gemini Nano, without a version.** Audit, 2026-11-23: `firebase` 13.2.0
+  (`@firebase/ai` 3.0.0) has no on-device model selector; it calls Chrome's
+  `LanguageModel.availability()` and `create()`. In Chrome 157.0.8103.51
+  (Chromium source at that tag) the browser picks the model: with the flag
+  "Gemma 4 for Built-in AI" on and a v4 use case in its config, the Prompt
+  API uses Gemma 4, otherwise the default model. No API reports which model
+  answered. The rules name "Gemini Nano 4" for Web; Google uses that name for
+  Android's Gemma 4-based model. Whether the web entry meets it is open; a
+  question to the organisers was drafted for the owner, not sent. Test
+  environment: the owner's `chrome://on-device-internals` (23 November)
+  showed the `nano_v3` components Ready and every Gemma 4 component Not
+  Installed, so the on-device runs of 23 November used Chrome's Gemini Nano
+  v3 component.
+- **Standards, as references, never compliance.** NIST SP 800-61 Rev. 3 (a
+  CSF 2.0 Community Profile): maps to DE.AE-02; supports RS.AN-03 in part
+  (what took place, not the root cause). Both quoted word for word, checked
+  against the text of NIST CSWP 29 and SP 800-61r3 (PDFs from nvlpubs.nist.gov,
+  2026-11-24). RS.AN-07 was dropped: a hash inside a JSON file the user can
+  edit is not integrity protection. SANS PICERL: the Identification phase,
+  cited to the GIAC record of the Incident Handler's Handbook (Kral, 2012),
+  whose abstract refers to "the six phases of the incident handling process";
+  the paper's PDF could not be opened here, so its phase list is not quoted.
+  MITRE ATT&CK: context on verified findings, never evidence.
+- **"Nothing is stored" corrected to "no case data is saved".** The app's own
+  code uses no browser storage (a test now scans the source for it), but the
+  Firebase SDK keeps an App Check token (`firebase-app-check-database`) and a
+  heartbeat (`firebase-heartbeat-database`) in IndexedDB. Neither holds case
+  data.
+- **Wordmark and themes** (owner's corrections the same day). The graphic
+  mark is gone: the name is the logo, a bold "AEMAS" wordmark (about 2.3 times
+  its former size: 2.4rem on a wide screen, 2.1rem on a phone) with "Security
+  Investigation & Event Matching" under it; PHANG Group stays in the footer.
+  The owner's earlier "black and white" meant a light/dark switch, not a black
+  palette, so both themes were redrawn: light is an off-white page, white
+  header and surfaces, one restrained blue (`#2453c2`); dark is charcoal and
+  slate (`#1b1f26` page, `#232830` surfaces), never pure black. A small
+  sun/moon icon at the header's far right switches theme; until it is used
+  the system setting applies. The choice lasts for the page and is not saved,
+  so the app still writes nothing to browser storage. The slogan is now one
+  connected line ("Gemini Nano proposes. → Deterministic engine verifies. →
+  The SOC decides.") rather than three boxes. Step 4 reads "Each claim is
+  checked against its cited events using fixed verification rules." The
+  checks sit in their own panel, with the standards quieter beside them. The
+  Unchecked example's note now quotes the engine's reason (Type "other": no
+  rule in code checks it); the finding itself is read from the worked example
+  unchanged. The exported HTML report keeps its print styling.
+- **The report's motto** (shown on a model run's findings and in the exported
+  report) is now "The model proposes. Deterministic engine verifies. The SOC
+  decides." It names no particular model, since a run may be Gemini Nano or,
+  after consent, the cloud model. Owner accepted three recommendations: this
+  motto; the screen sentences keep "code" (plain words, short sentences; the
+  slogan and step 4 name the engine); the SANS link stays the GIAC record
+  with no phase list quoted.
+- **Left as they were:** the system prompt's "The analyst decides.", which is
+  part of the prompt and its recorded hash; the verifier, routing and consent.
+
+Evidence: 318 tests pass (305 before), lint clean, type check and production
+build pass. Checked in the desktop app's browser pane at 1280 px and 319 px,
+in both themes, switched with the header icon: no horizontal overflow at
+319 px; the case workspace (verdict tiles, findings) follows the theme. Not
+committed, pushed or deployed: that waits for the owner's approval of the
+screenshots.
