@@ -32,8 +32,9 @@ import type { Investigation } from './Investigations'
 import { Overview } from './Overview'
 import { ReportView } from './ReportView'
 import { SiteFooter, SiteHeader } from './Shell'
+import { SCREEN } from './site'
 import type { Page } from './site'
-import { EventList } from './ui'
+import { EventList, ScreenNote } from './ui'
 import './App.css'
 
 // A case (a case file the analyst opens from disk, or the simulated sample)
@@ -42,10 +43,11 @@ import './App.css'
 // deterministic checks -> an investigation report and a run record the
 // analyst can keep.
 //
-// The pages: Overview (with the case study), Investigations (where a case is
-// opened, and this session's runs), and an open case in three steps
-// (Evidence, Analysis, Report). How the AI runs, and its status, are shown
-// in the Analysis step and in the footer's system details.
+// The pages: Overview, Case Study, Investigations (where a case is opened, and
+// this session's runs), and an open case in three steps (Evidence, Analysis,
+// Report), each headed by one plain sentence saying what happens there. How
+// the AI runs, and its status, are shown in the Analysis step and in the
+// footer's system details.
 // The built-in GS-03 case (src/data/gs03.ts) is no longer offered here; it
 // stays as a regression fixture for its tests.
 
@@ -264,7 +266,7 @@ function App() {
       } else {
         const next = pageFromHash(location.hash)
         setPage(next)
-        if (next !== 'case-study') window.scrollTo(0, 0)
+        window.scrollTo(0, 0)
         const own = next === 'case-study' ? '#/case-study' : next === 'investigations' ? '#/investigations' : '#/'
         if (location.hash !== own) history.replaceState(null, '', own)
       }
@@ -272,11 +274,6 @@ function App() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-
-  // The case study is a section of the overview: its address scrolls to it.
-  useEffect(() => {
-    if (shown === 'case-study') document.getElementById('case-study')?.scrollIntoView({ block: 'start' })
-  }, [shown])
 
   // Every model run of this session, newest first. Closing a case or running
   // again loses nothing while the page is open; it is kept in memory only, so
@@ -293,8 +290,7 @@ function App() {
   function navigate(next: Page) {
     const to = next === 'case' && active === null ? 'investigations' : next
     setPage(to)
-    if (to === 'case-study') document.getElementById('case-study')?.scrollIntoView({ block: 'start' })
-    else window.scrollTo(0, 0)
+    window.scrollTo(0, 0)
   }
 
   // Reopens a run from Investigations, on its own case, at its findings.
@@ -597,16 +593,17 @@ function App() {
       />
 
       <main id="main" className="shell" tabIndex={-1}>
-        {(shown === 'overview' || shown === 'case-study') && (
+        {shown === 'overview' && (
           <Overview
             notice={fileProblems}
-            caseStudy={<CaseStudy />}
             busy={busy}
             onStart={() => navigate('investigations')}
             onCaseStudy={() => navigate('case-study')}
             onHowVerdicts={openWorkedExample}
           />
         )}
+
+        {shown === 'case-study' && <CaseStudy />}
 
         {shown === 'investigations' && (
           <Investigations
@@ -675,6 +672,17 @@ function App() {
                 </button>
               ))}
             </nav>
+            <ScreenNote
+              text={
+                tab === 'evidence'
+                  ? SCREEN.evidence
+                  : tab === 'report'
+                    ? SCREEN.report
+                    : result && !result.record
+                      ? SCREEN.verdicts // the worked example: no model ran
+                      : SCREEN.analysis
+              }
+            />
 
             {tab === 'evidence' && (
               <section className="card" role="tabpanel" aria-label="Evidence">

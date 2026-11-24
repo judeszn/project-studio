@@ -170,7 +170,7 @@ describe('it is never presented as a model result', () => {
     expect(html).toContain('No model ran.')
     expect(html).toContain('Claim, written by the AEMAS team:')
     expect(html).toContain('none: no model ran')
-    for (const modelWords of ['written by the model', "The model's proposal", 'Raw model output', 'Ran on this device', 'Ran in the cloud', 'AI proposes']) {
+    for (const modelWords of ['written by the model', "The model's proposal", 'Raw model output', 'Ran on this device', 'Ran in the cloud', 'AI proposes', 'The model proposes']) {
       expect(html).not.toContain(modelWords.replace(/'/g, '&#39;'))
     }
     expect(reportFileName(report)).toBe('sample-infopro-auth.analyst-authored-example.report.html')
@@ -196,6 +196,10 @@ describe('it is never presented as a model result', () => {
     expect(reportFileName(model)).not.toContain('analyst-authored')
     expect(page(model)).not.toContain('No model ran')
     expect(page(model)).not.toContain('AEMAS team')
+    // A model run's motto names no particular model: it may be Nano or the cloud.
+    const motto = 'The model proposes. Deterministic engine verifies. The SOC decides.'
+    expect(html).toContain(motto)
+    expect(page(model)).toContain(motto)
   })
 
   it('makes no run record: the worked example yields a report only', () => {

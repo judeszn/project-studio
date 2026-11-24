@@ -1,9 +1,11 @@
-import { TESTIMONY } from './site'
+import { SCREEN, TESTIMONY } from './site'
+import { ScreenNote } from './ui'
 
-// A historical incident, to show the problem AEMAS addresses. Facts come
-// from the public record and are cited; how AEMAS could apply is labelled
-// hypothetical, and what it could not have done is stated as plainly. AEMAS
-// was not used in this incident and holds none of its data.
+// A historical incident, to show the problem AEMAS addresses; a page of its
+// own, which the home page links to. Facts come from the public record and
+// are cited; how AEMAS could apply is labelled hypothetical, and what it could
+// not have done is stated as plainly. AEMAS was not used in this incident and
+// holds none of its data.
 
 // A footnote marker. Not a link: the address bar holds the page's route.
 const SOURCE_1 = <sup className="ref">[1]</sup>
@@ -13,7 +15,8 @@ export function CaseStudy() {
     <section id="case-study" className="case-study" aria-labelledby="case-study-title">
       <div className="cs-head">
         <p className="eyebrow">Case study</p>
-        <h2 id="case-study-title">Change Healthcare cyberattack, 2024</h2>
+        <h1 id="case-study-title">Change Healthcare cyberattack, 2024</h1>
+        <ScreenNote text={SCREEN.caseStudy} />
         <p className="lede">
           The attack began with a sign-in. Establishing how it happened depended on what the
           records could show.

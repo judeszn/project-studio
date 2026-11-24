@@ -76,6 +76,11 @@ export function Sub({
   )
 }
 
+// What this screen is for, in one sentence. The same form on every screen.
+export function ScreenNote({ text }: { text: string }) {
+  return <p className="screen-note">{text}</p>
+}
+
 export function Problems({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (

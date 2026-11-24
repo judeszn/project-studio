@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Report } from './lib/report'
+import { SCREEN } from './site'
+import { ScreenNote } from './ui'
 
 // Where an investigation starts, and the list of this session's
-// investigations. Every row is a run made in this page; nothing is stored,
-// uploaded or invented, so the list says so, and it is empty until a run
-// exists. The simulated sample is offered as evidence to start from, labelled
+// investigations. Every row is a run made in this page, held in memory: no
+// case data is saved, uploaded or invented, so the list says so, and it is
+// empty until a run exists. (The Firebase SDK keeps an App Check token and a
+// usage heartbeat in IndexedDB; neither holds case data.) The simulated sample is offered as evidence to start from, labelled
 // as simulated; the worked example is reached from "How verdicts work".
 
 export interface Investigation {
@@ -40,10 +43,7 @@ export function Investigations({
       <div className="page-head">
         <p className="eyebrow">Investigations</p>
         <h1>Start an Investigation</h1>
-        <p className="lede">
-          Supply authentication event records. AI proposes findings, code checks each one against
-          the records it cites, and you review the result.
-        </p>
+        <ScreenNote text={SCREEN.investigations} />
       </div>
 
       {notice}
@@ -84,7 +84,7 @@ export function Investigations({
       <section className="panel-card" aria-label="This session’s investigations">
         <div className="panel-head">
           <h2>This session’s investigations</h2>
-          <span className="status">kept in this browser tab only; nothing is stored</span>
+          <span className="status">kept in this browser tab only; no case data is saved</span>
         </div>
         {investigations.length === 0 ? (
           <p className="hint">

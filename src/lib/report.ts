@@ -79,7 +79,8 @@ export const WORDS: Record<
 > = {
   model: {
     title: 'Investigation report',
-    motto: 'AI proposes. Code verifies. The analyst decides.',
+    // True of both models: a run may be Gemini Nano or, after consent, the cloud.
+    motto: 'The model proposes. Deterministic engine verifies. The SOC decides.',
     claim: 'Claim, written by the model:',
     proposal: "The model's proposal",
     proposalNote: PROPOSAL_NOTE,

@@ -50,14 +50,27 @@ describe('Investigations', () => {
     expect(html).not.toContain('<table')
   })
 
-  it('lists each run of the session with its verdicts, and says nothing is stored', async () => {
+  it('lists each run of the session with its verdicts, and says no case data is saved', async () => {
     const runs = await twoRuns()
     const html = page(runs)
     const { verified } = runs[1].report.counts
     const findings = runs[1].report.findings.length
     expect(html.match(/<tr>/g)).toHaveLength(3) // header and two runs
     expect(html).toContain(`${verified}/${findings}`)
-    expect(html).toContain('nothing is stored')
+    expect(html).toContain('kept in this browser tab only; no case data is saved')
+    expect(html).not.toContain('nothing is stored')
+  })
+
+  it('the page’s own code uses no browser storage, so no case data is saved', () => {
+    const sources = import.meta.glob(['./**/*.{ts,tsx}', '!./**/*.test.{ts,tsx}'], {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>
+    expect(Object.keys(sources).length).toBeGreaterThan(10)
+    for (const [file, code] of Object.entries(sources)) {
+      expect(code, file).not.toMatch(/localStorage|sessionStorage|indexedDB\.|document\.cookie|caches\./)
+    }
   })
 
   it('shows no dashboard counters, alerts or planned capabilities', async () => {
