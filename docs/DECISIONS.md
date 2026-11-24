@@ -2188,3 +2188,57 @@ in both themes, switched with the header icon: no horizontal overflow at
 319 px; the case workspace (verdict tiles, findings) follows the theme. Not
 committed, pushed or deployed: that waits for the owner's approval of the
 screenshots.
+
+### Refused case files: a readable refusal (owner's decision, 2026-11-24)
+
+The owner opened a 24-event file an AI tool had generated: flat records
+(`id`, `timestamp`, `user`, `computer`, `event_type`, `outcome`) under
+`events`. The reader refused it, as it should, but listed 195 reasons in one
+block. The owner locked a change to how a refusal reads, not to what is
+refused:
+
+- **Summary first:** "This file is not in the AEMAS case-file format. Nothing
+  in it was used."
+- **Flat records named:** when every event is a flat record (under `events`
+  or as a bare list), one sentence says that every event needs `evidence` and
+  `provenance`. `hasFlatRecords` in `src/lib/casefile.ts` only explains a
+  refusal; it never opens, repairs or converts a file.
+- **First 10 reasons, the rest folded:** "Show all N errors", with N counted
+  from the file, opens the rest, numbered on from 11. Only the summary is
+  announced to screen readers, not the list.
+- **A file that opens:** "Download the sample case file" saves the bundled
+  sample (`src/data/sample-case.json`, emitted by the build as its own file)
+  as `aemas-sample-case.json`, beside a link to `docs/CASE_FILE.md` on
+  GitHub. Both appear in the refusal and on the "Open evidence file" card.
+- **`docs/CASE_FILE.md`:** the out-of-date button name corrected ("Use sample
+  evidence (simulated)"); what a refusal shows; and test files made with an
+  AI tool: the AI writes only records labelled as synthetic, and code builds
+  each event's provenance from the generated file, so no AI writes the audit
+  trail.
+- **Unchanged:** the reader's rules (every reason is still listed), the
+  verifier, inference routing and consent.
+- **Not done:** a "Generate a test dataset with AI" button and AI-written
+  provenance (they would undermine the provenance the product relies on);
+  error categories (not worth the time before the deadline).
+
+The owner's file was converted for testing by a one-off script outside the
+repository (not committed): 24 events, 10 denied, and the reader opens it.
+Its records say only "authentication", so each was entered as "logon, type
+not recorded", and the converted file's `source` says so.
+
+Evidence: 327 tests pass (318 before; 9 new: flat-record refusal and its
+guidance, truncation and "Show all" with the count from the file, nothing
+folded at 10 or fewer, the summary alone announced, the sample download and
+the format link). Lint clean; type check and production build pass. In the
+desktop app's browser pane at 319 px, light and dark: the owner's flat file
+gives 195 errors, 10 shown and 11 to 195 under "Show all 195 errors", no
+horizontal overflow; the download link serves the sample (18 events); no
+console errors after a reload. Desktop, in the owner's Chrome through Claude
+in Chrome (the pane was too narrow), at a page 1437 px wide: the same
+refusal in light and dark, and "Show all" open in both, numbered on from 11.
+The owner reviewed all eight screenshots and approved commit, push and
+deploy the same day.
+
+The home page release in the entry above was committed (`c3f8b3a`,
+`20e9b69`), pushed and deployed on 2026-11-24 after the owner's approval; the
+live files matched the local build.

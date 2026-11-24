@@ -177,7 +177,7 @@ the free tier of the Gemini Developer API.
 | --- | --- | --- |
 | Gen AI app using Firebase AI Logic, with App Check | Done | `src/lib/hybrid.ts` calls `getGenerativeModel(...).generateContent`; App Check with reCAPTCHA Enterprise; consented cloud run in production, 2026-11-23 |
 | Web (Chrome): Gemini Nano through Firebase AI Logic | Done | Nano run in production, `inferenceSource: on_device`, 2026-11-23 |
-| Installs and runs; works as the video and text describe | Done for the text | Fresh clone of `main` installs, passes 318 tests and builds; the README's steps match the live app. The video must show the same interface |
+| Installs and runs; works as the video and text describe | Done for the text | Fresh clone of `main` installs, passes 327 tests and builds; the README's steps match the live app. The video must show the same interface |
 | Pre-existing work disclosed | Done | README "Pre-existing work"; this file |
 | Authorised third-party data | Done | LANL data public (cited); not in the repository; sample data simulated |
 | Free access for judges until judging ends (Dec 16) | Done; keep it up | Hosted app, no sign-in, Firebase Hosting |
