@@ -149,11 +149,14 @@ against it (`src/lib/verify.ts`):
 | `denied_logon` | a logon with outcome `denied` |
 | `other` | No rule. Never shown as supported |
 
-Quoted times and account names are also checked against the cited events. A
-`denied_logon` finding shows that an attempt was refused. It does not show
-that access was obtained, that an account is compromised, or an attack. Code
-does not read a claim's wording, so it cannot check that a claim stays within
-that.
+Quoted times, account names and computer names are also checked against the
+cited events. A `denied_logon` finding shows that an authentication attempt
+was refused. It does not, by itself, establish an attack, malicious intent or
+account compromise.
+
+Verification checks selected fields against the cited events. It does not
+establish that the finding's full wording, interpretation or conclusion is
+accurate.
 
 ## Run records
 

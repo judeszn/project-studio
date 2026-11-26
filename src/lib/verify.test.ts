@@ -470,7 +470,7 @@ describe('identities', () => {
 })
 
 // The sample case. The claims below are the models' own, from the run records
-// of 15 and 17 November 2026 (docs/DECISIONS.md, 2026-11-17).
+// of 15 and 17 November 2026.
 const sample = parseCaseFile(SAMPLE_CASE)
 if (!sample.ok) throw new Error(sample.errors.join('; '))
 const SAMPLE_EVENTS = sample.case.events

@@ -6,7 +6,7 @@ import { AUTH_VOCABULARY, LANL_CITATION, LANL_TIME_NOTE, toEvidence, type CaseFi
 import { authFixture } from './testing'
 
 // The LANL system prompt, frozen 2026-11-12 before any model saw LANL
-// evidence (docs/DECISIONS.md). Both evaluation runs must record this hash.
+// evidence. Both evaluation runs must record this hash.
 export const FROZEN_LANL_PROMPT_SHA256 = '4439ce200e3d17fa250e425ce08a8e15c48220667d29f98034f8c36bfc46d6e7'
 
 describe('frozen LANL system prompt', () => {
