@@ -1,7 +1,7 @@
 import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app'
 import { GoogleAIBackend, InferenceMode, getAI, getGenerativeModel } from 'firebase/ai'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LOCAL_MODE, createEngine, investigate, sendWithConsent } from './hybrid'
+import { LOCAL_MODE, createEngine, failureOf, investigate, sendWithConsent } from './hybrid'
 import { incidentProposalSchema, lanlProposalSchema } from './schema'
 
 // The installed Firebase AI Logic SDK itself, not a mock of it. Under Node,
@@ -21,10 +21,36 @@ const CLOUD_TEXT = '{"from":"cloud"}'
 const LOCAL_TEXT = '{"from":"device"}'
 
 let app: FirebaseApp
-let fetchCalls: { url: string; headers: Headers; body: string }[]
+let fetchCalls: { url: string; headers: Headers; body: string; signal: AbortSignal | null }[]
 let localCalls: { createOptions: unknown; promptOptions: unknown }[]
 let availabilityAnswers: string[]
 let localPrompt: () => Promise<string>
+// What Chrome's streaming prompt call yields, chunk by chunk; given the
+// signal it received, so a fake can watch for its abort as Chrome does.
+let localStream: (signal: AbortSignal | undefined) => ReadableStream<string>
+
+const chunksOf = (...chunks: string[]) =>
+  new ReadableStream<string>({
+    start(controller) {
+      for (const c of chunks) controller.enqueue(c)
+      controller.close()
+    },
+  })
+
+// A stream that writes `first`, then `repeat` without end, as Gemini Nano's
+// breakdown does, until its signal aborts it, as Chrome's stream is.
+const endless = (first: string, repeat: string) => (signal: AbortSignal | undefined) =>
+  new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(first)
+      signal?.addEventListener('abort', () => controller.error(signal.reason))
+    },
+    async pull(controller) {
+      await new Promise((r) => setTimeout(r, 0))
+      if (signal?.aborted) return
+      controller.enqueue(repeat)
+    },
+  })
 
 function installPromptApi() {
   vi.stubGlobal('LanguageModel', {
@@ -33,6 +59,10 @@ function installPromptApi() {
       prompt: (_input: unknown, promptOptions: unknown) => {
         localCalls.push({ createOptions, promptOptions })
         return localPrompt()
+      },
+      promptStreaming: (_input: unknown, promptOptions: { signal?: AbortSignal }) => {
+        localCalls.push({ createOptions, promptOptions })
+        return localStream(promptOptions?.signal)
       },
       destroy() {},
     })),
@@ -45,10 +75,22 @@ beforeEach(() => {
   localCalls = []
   availabilityAnswers = []
   localPrompt = async () => LOCAL_TEXT
+  localStream = () => chunksOf('{"from":', '"device"}')
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: RequestInit) => {
-      fetchCalls.push({ url: String(url), headers: new Headers(init.headers), body: String(init.body) })
+      fetchCalls.push({
+        url: String(url),
+        headers: new Headers(init.headers),
+        body: String(init.body),
+        signal: init.signal ?? null,
+      })
+      if (cloudHangs) {
+        // A request that never answers until its signal aborts it.
+        await new Promise((_, reject) =>
+          init.signal?.addEventListener('abort', () => reject(init.signal!.reason)),
+        )
+      }
       const body = { candidates: [{ content: { role: 'model', parts: [{ text: CLOUD_TEXT }] }, finishReason: 'STOP' }] }
       return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
     }),
@@ -58,6 +100,11 @@ beforeEach(() => {
 afterEach(async () => {
   vi.unstubAllGlobals()
   await deleteApp(app)
+})
+
+let cloudHangs = false
+afterEach(() => {
+  cloudHangs = false
 })
 
 const ai = () => getAI(app, { backend: new GoogleAIBackend() })
@@ -88,9 +135,14 @@ describe('installed SDK: the run made without consent never reaches the cloud', 
 
   it('Nano fails during inference', async () => {
     installPromptApi()
-    localPrompt = async () => {
-      throw new DOMException('input too large', 'QuotaExceededError')
-    }
+    // On-device attempts stream (2026-11-26), so Chrome's failure arrives on
+    // the stream.
+    localStream = () =>
+      new ReadableStream<string>({
+        start(controller) {
+          controller.error(new DOMException('input too large', 'QuotaExceededError'))
+        },
+      })
     const out = await investigate(engineNow(), 'on_device', PROMPT)
     expect(out).toMatchObject({ kind: 'consent', reason: 'local_failed' })
     expect(fetchCalls).toEqual([])
@@ -196,5 +248,134 @@ describe('installed SDK behaviour the design depends on', () => {
     const tags = fetchCalls.map((c) => c.headers.get('x-goog-api-client') ?? '')
     expect(tags[0]).not.toMatch(/\bhybrid\b/)
     expect(tags[1]).toMatch(/\bhybrid\b/)
+  })
+})
+
+// Bounded execution (2026-11-26): the on-device attempt streams through the
+// installed SDK and is stopped, with its signal reaching Chrome, when its
+// output breaks down, runs too long or too slow, or the analyst stops it.
+// Nothing is retried and nothing goes to the cloud without consent.
+describe('installed SDK: bounded on-device attempts', () => {
+  const caseEngine = (limits?: { deviceMs?: number; cloudMs?: number }) =>
+    createEngine(ai(), 'case instruction', lanlProposalSchema, limits).engine
+  const signalSeen = () => (localCalls[0].promptOptions as { signal?: AbortSignal }).signal
+
+  it('a completed stream is one completed attempt, its output exactly as received', async () => {
+    installPromptApi()
+    localStream = () => chunksOf('{\n  "findings": [],\n', '  "explanation": "x"\n}')
+    const out = await investigate(caseEngine(), 'on_device', PROMPT)
+    expect(out).toMatchObject({ kind: 'done', mode: LOCAL_MODE, inferenceSource: 'on_device' })
+    expect(out.attempt).toMatchObject({ outcome: 'completed', streamed: true, stopReason: null, consented: false })
+    expect(out.attempt?.output).toBe('{\n  "findings": [],\n  "explanation": "x"\n}')
+    expect(signalSeen()).toBeInstanceOf(AbortSignal) // the signal reaches Chrome's call
+    expect(signalSeen()?.aborted).toBe(false)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it('a whitespace breakdown is stopped: Chrome is told to stop, nothing is sent, the output is kept', async () => {
+    installPromptApi()
+    localStream = endless('{"findings": [', '\n  ')
+    const out = await investigate(caseEngine(), 'on_device', PROMPT)
+    expect(out.kind).toBe('consent') // the existing route: ask, never send
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'whitespace run', error: null })
+    expect(out.attempt?.output?.startsWith('{"findings": [')).toBe(true)
+    expect(out.attempt!.output!.length).toBeGreaterThan(200)
+    expect(signalSeen()?.aborted).toBe(true)
+    expect(out.kind === 'consent' && out.detail).toMatch(/stopped: its output turned into a run of more than 200 whitespace/)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it('output that will not end is stopped at the length limit', async () => {
+    installPromptApi()
+    localStream = endless('{"findings": [', '"E01", ')
+    const out = await investigate(caseEngine(), 'on_device', PROMPT)
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'output limit' })
+    expect(signalSeen()?.aborted).toBe(true)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it('an attempt that writes nothing is stopped at the time limit', async () => {
+    installPromptApi()
+    localStream = (signal) =>
+      new ReadableStream<string>({
+        start(controller) {
+          signal?.addEventListener('abort', () => controller.error(signal.reason))
+        },
+      })
+    const out = await investigate(caseEngine({ deviceMs: 30 }), 'on_device', PROMPT)
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'time limit', output: null })
+    expect(signalSeen()?.aborted).toBe(true)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it("the analyst's Stop ends the run: recorded, no consent question, nothing sent", async () => {
+    installPromptApi()
+    const stop = new AbortController()
+    localStream = (signal) => {
+      setTimeout(() => stop.abort(), 5)
+      return endless('{"findings": [', '"x"')(signal)
+    }
+    const out = await investigate(caseEngine(), 'on_device', PROMPT, { signal: stop.signal })
+    expect(out.kind).toBe('ended')
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'cancelled by analyst' })
+    expect(signalSeen()?.aborted).toBe(true)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it("Chrome's own error mid-stream is a failed attempt, with what it had written", async () => {
+    installPromptApi()
+    localStream = () =>
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('{"findings": [')
+          const e = new Error('The response exceeded output limits and was truncated.')
+          e.name = 'QuotaExceededError'
+          controller.error(e)
+        },
+      })
+    const out = await investigate(caseEngine(), 'on_device', PROMPT)
+    expect(out.kind).toBe('consent')
+    expect(out.attempt).toMatchObject({ outcome: 'error', stopReason: null })
+    expect(out.attempt?.error).toMatch(/QuotaExceededError/)
+    expect(fetchCalls).toEqual([])
+  })
+
+  it('malformed output still completes: the verifier, not the attempt, judges it', async () => {
+    installPromptApi()
+    localStream = () => chunksOf('not JSON at all')
+    const out = await investigate(caseEngine(), 'on_device', PROMPT)
+    expect(out).toMatchObject({ kind: 'done', text: 'not JSON at all' })
+    expect(out.attempt?.outcome).toBe('completed')
+  })
+})
+
+describe('installed SDK: bounded cloud attempts after consent', () => {
+  const caseEngine = (limits?: { deviceMs?: number; cloudMs?: number }) =>
+    createEngine(ai(), 'case instruction', lanlProposalSchema, limits).engine
+
+  it('the cloud request carries a signal; a completed answer is a completed attempt', async () => {
+    const out = await sendWithConsent(caseEngine(), 'cloud_requested', PROMPT)
+    expect(out).toMatchObject({ kind: 'done', inferenceSource: 'in_cloud', consented: true })
+    expect(out.attempt).toMatchObject({ where: 'cloud', outcome: 'completed', streamed: false, remoteProcessing: null })
+    expect(fetchCalls).toHaveLength(1)
+    expect(fetchCalls[0].signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it("the analyst's Stop aborts the request, and says only that the page stopped waiting", async () => {
+    cloudHangs = true
+    const stop = new AbortController()
+    setTimeout(() => stop.abort(), 5)
+    const out = await sendWithConsent(caseEngine(), 'local_failed', PROMPT, { signal: stop.signal })
+    expect(out.kind).toBe('ended')
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'cancelled by analyst', remoteProcessing: 'unknown' })
+    expect(fetchCalls[0].signal?.aborted).toBe(true)
+    expect(failureOf(out.attempt)).toMatch(/This page stopped waiting; Google may already have received the request/)
+    expect(failureOf(out.attempt)).not.toMatch(/cancelled at Google|was cancelled remotely/)
+  })
+
+  it('a cloud request that does not answer in time is stopped, remote processing unknown', async () => {
+    cloudHangs = true
+    const out = await sendWithConsent(caseEngine({ cloudMs: 30 }), 'cloud_requested', PROMPT)
+    expect(out.attempt).toMatchObject({ outcome: 'stopped', stopReason: 'time limit', remoteProcessing: 'unknown' })
   })
 })

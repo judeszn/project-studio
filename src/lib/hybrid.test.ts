@@ -37,7 +37,7 @@ function fakeEngine({
       expect(prompt).toBe(PROMPT)
       runs.push(mode)
       if (mode === LOCAL_MODE && local === 'throws') throw new Error('QuotaExceededError')
-      return { text: '{}', inferenceSource: mode === LOCAL_MODE ? 'on_device' : 'in_cloud' }
+      return { text: '{}', inferenceSource: mode === LOCAL_MODE ? 'on_device' : 'in_cloud', streamed: mode === LOCAL_MODE }
     },
   }
 }
@@ -70,6 +70,7 @@ describe('investigate: never sends without consent', () => {
       kind: 'consent',
       reason: 'unavailable',
       detail: NO_PROMPT_API,
+      attempt: null, // no attempt was made
     })
     expect(engine.runs).toEqual([])
   })

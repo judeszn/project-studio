@@ -4,6 +4,7 @@ import type { Report } from './report'
 import { EVENTS, MIXED, PROVENANCE, finding, output, recordFor, reportOf } from './report.fixtures'
 import { recordFileName } from './record'
 import type { RunFacts } from './record'
+import type { Step } from './attempts'
 import type { LogEvent } from './schema'
 
 // The proposals here repeat, on synthetic events (report.fixtures.ts), each
@@ -144,6 +145,31 @@ describe('reportHtml: the exported file', () => {
     expect(page).toContain('output is not valid JSON')
     expect(page).toContain('<pre>not json</pre>')
     for (const e of EVENTS) expect(page).toContain(`<strong>${e.id}</strong>`)
+  })
+
+  // Every attempt and consent decision of the run is in the report, in order
+  // and escaped like everything else (record v2, 2026-11-26).
+  it('lists every step of the run, escaped', async () => {
+    const hostile = 'QuotaExceededError: <img src=x onerror=alert(1)>'
+    const steps: Step[] = [
+      { kind: 'attempt', where: 'device', sdkMode: 'only_on_device', streamed: true, consented: false, startedAt: 't0', finishedAt: 't1', durationMs: 9300, onlineAtStart: true, onlineAtEnd: true, outcome: 'error', stopReason: null, error: hostile, inferenceSource: null, output: '{', remoteProcessing: null },
+      { kind: 'consent', reason: 'local_failed', detail: 'On-device inference failed.', askedAt: 't2', decision: 'granted', decidedAt: 't3' },
+      { kind: 'attempt', where: 'cloud', sdkMode: 'prefer_in_cloud', streamed: false, consented: true, startedAt: 't4', finishedAt: 't5', durationMs: 3000, onlineAtStart: true, onlineAtEnd: true, outcome: 'completed', stopReason: null, error: null, inferenceSource: 'in_cloud', output: MIXED, remoteProcessing: null },
+    ]
+    const record = await recordFor(MIXED, {
+      cloudAllowed: true,
+      result: { text: MIXED, inferenceSource: 'in_cloud', sdkMode: 'prefer_in_cloud', consented: true, latencyMs: 3000 },
+      steps,
+    })
+    const report = buildReport(record, EVENTS, PROVENANCE)
+    expect(report.run?.steps).toHaveLength(3)
+    expect(report.run?.steps[0]).toMatch(/^On this device \(only_on_device, streamed\), started t0: failed after 9\.3 s: QuotaExceededError/)
+    expect(report.run?.steps[1]).toMatch(/sent with consent at t3/)
+    expect(report.run?.steps[2]).toMatch(/^In the cloud, after consent \(prefer_in_cloud\).*completed in 3\.0 s/)
+    const html = reportHtml(report, '2026-11-26T10:00:00.000Z')
+    expect(html).toContain('Every step of this run')
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(html).not.toContain('<img src=x')
   })
 
   it('escapes evidence, provenance, case details and model text, and allows no script or remote resource', async () => {

@@ -6,6 +6,8 @@ import { ATTACK_NOTICE, ATTACK_TERMS_URL } from './lib/attack'
 import { MAX_CASE_BYTES, hasFlatRecords, parseCaseFile } from './lib/casefile'
 import type { CaseSource, LoadedCase, Provenance } from './lib/casefile'
 import { ai, appCheckMode, firebaseConfigured } from './lib/firebase'
+import { CLOUD_TIME_LIMIT_MS, DEVICE_TIME_LIMIT_MS, guardInFlight } from './lib/attempts'
+import type { Step as RunStep } from './lib/attempts'
 import {
   CLOUD_DATA_TERMS,
   CLOUD_MODEL,
@@ -13,6 +15,7 @@ import {
   LOCAL_MODE,
   NO_PROMPT_API,
   createEngine,
+  failureOf,
   investigate,
   sendWithConsent,
 } from './lib/hybrid'
@@ -112,10 +115,14 @@ type Step =
   | { state: 'done' }
   | { state: 'failed'; error: string }
 
+// Every run that ends without findings keeps its record too (record v2):
+// declined, stopped by the analyst, or failed.
 type Run =
-  | { state: 'idle' | 'done' | 'declined' }
+  | { state: 'idle' | 'done' }
   | { state: 'working'; where: 'device' | 'cloud'; since: number } // since: Date.now()
   | { state: 'consent'; request: Request; reason: ConsentReason; detail: string }
+  | { state: 'declined'; record?: RunRecord }
+  | { state: 'cancelled'; message: string; record?: RunRecord }
   | { state: 'failed'; error: string; record?: RunRecord }
 
 // A real run has a record. The worked example has none: no model ran.
@@ -219,6 +226,17 @@ function useOnline(): boolean {
   return online
 }
 
+// An action that ignores being started again while it runs (a double click
+// sends once), always running the latest version of itself.
+function useGuarded<A extends unknown[]>(action: (...args: A) => Promise<void>) {
+  const latest = useRef(action)
+  useEffect(() => {
+    latest.current = action
+  })
+  const [guarded] = useState(() => guardInFlight((...args: A) => latest.current(...args)))
+  return guarded
+}
+
 function App() {
   const online = useOnline()
   const [active, setActive] = useState<ActiveCase | null>(null)
@@ -236,6 +254,10 @@ function App() {
   // on the analyst's word.
   const [page, setPage] = useState<Page>(() => pageFromHash(location.hash))
   const fileInput = useRef<HTMLInputElement>(null)
+  // The current run, step by step, for its record; and the Stop of its
+  // attempt in progress.
+  const steps = useRef<RunStep[]>([])
+  const stopper = useRef<AbortController | null>(null)
 
   // The browser's back and forward move between the pages and the case's
   // steps. The address holds only the view (#/, #/investigations,
@@ -415,8 +437,11 @@ function App() {
     from: Started,
     outcome: RunFacts['result'],
     verification: Verification | null,
+    ended?: RunFacts['ended'],
   ) {
     return buildRunRecord({
+      steps: [...steps.current],
+      ended,
       case: {
         id: c.id,
         origin: c.origin,
@@ -470,35 +495,94 @@ function App() {
     setRun({ state: 'failed', error, record: await recordOf(c, request, from, { error }, null) })
   }
 
-  // Never sends evidence off the device; at most it asks for consent, and
-  // only when the cloud is allowed for this case.
-  async function start(request: Request) {
-    if (!active) return
-    setResult(null)
-    const c = active
-    if (request === 'on_device') setRun({ state: 'working', where: 'device', since: Date.now() })
-    const from = started()
-    try {
-      const out = await investigate(c.engine, request, c.prompt)
-      if (out.kind === 'done') await finish(c, request, out, from)
-      else if (cloudAllowed) setRun({ state: 'consent', request, ...out })
-      else await failed(c, request, from, `Nothing was sent to the cloud. ${out.detail}`)
-    } catch (e) {
-      await failed(c, request, from, `Nothing was sent to the cloud. ${describe(e)}`)
+  // Stopped by the analyst: recorded, and nothing follows.
+  async function cancelled(c: ActiveCase, request: Request, from: Started, message: string) {
+    const record = await recordOf(c, request, from, { error: message }, null, 'cancelled')
+    setRun({ state: 'cancelled', message, record })
+  }
+
+  // The consent question on screen, answered: its step gets the decision.
+  function decide(decision: 'granted' | 'declined') {
+    for (const step of [...steps.current].reverse()) {
+      if (step.kind === 'consent' && step.decision === null) {
+        Object.assign(step, { decision, decidedAt: new Date().toISOString() })
+        return
+      }
     }
   }
 
-  // The only path to the cloud: the analyst's click on "Send".
-  async function consent(request: Request, reason: ConsentReason) {
-    if (!active || !cloudAllowed) return
+  // When the current run began, from its first step.
+  const runStart = (): Started => {
+    const first = steps.current[0]
+    if (first?.kind === 'attempt') return { at: first.startedAt, online: first.onlineAtStart }
+    return { at: first?.askedAt ?? new Date().toISOString(), online: navigator.onLine }
+  }
+
+  // Never sends evidence off the device; at most it asks for consent, and
+  // only when the cloud is allowed for this case.
+  const start = useGuarded(async (request: Request) => {
+    if (!active) return
+    setResult(null)
     const c = active
+    steps.current = []
+    const stop = new AbortController()
+    stopper.current = stop
+    if (request === 'on_device') setRun({ state: 'working', where: 'device', since: Date.now() })
+    const from = started()
+    try {
+      const out = await investigate(c.engine, request, c.prompt, { signal: stop.signal })
+      if (out.attempt) steps.current.push(out.attempt)
+      if (out.kind === 'done') await finish(c, request, out, from)
+      else if (out.kind === 'ended') await cancelled(c, request, from, failureOf(out.attempt))
+      else if (cloudAllowed) {
+        steps.current.push({
+          kind: 'consent',
+          reason: out.reason,
+          detail: out.detail,
+          askedAt: new Date().toISOString(),
+          decision: null,
+          decidedAt: null,
+        })
+        setRun({ state: 'consent', request, reason: out.reason, detail: out.detail })
+      } else await failed(c, request, from, `Nothing was sent to the cloud. ${out.detail}`)
+    } catch (e) {
+      await failed(c, request, from, `Nothing was sent to the cloud. ${describe(e)}`)
+    } finally {
+      stopper.current = null
+    }
+  })
+
+  // The only path to the cloud: the analyst's click on "Send". A second click
+  // while it runs is ignored, so it sends once.
+  const consent = useGuarded(async (request: Request, reason: ConsentReason) => {
+    if (!active || !cloudAllowed || run.state !== 'consent') return
+    const c = active
+    decide('granted')
+    const stop = new AbortController()
+    stopper.current = stop
     setRun({ state: 'working', where: 'cloud', since: Date.now() })
     const from = started()
     try {
-      await finish(c, request, await sendWithConsent(c.engine, reason, c.prompt), from)
+      const out = await sendWithConsent(c.engine, reason, c.prompt, { signal: stop.signal })
+      steps.current.push(out.attempt)
+      if (out.kind === 'done') await finish(c, request, out, from)
+      else if (out.attempt.stopReason === 'cancelled by analyst') await cancelled(c, request, from, failureOf(out.attempt))
+      else await failed(c, request, from, failureOf(out.attempt))
     } catch (e) {
       await failed(c, request, from, `Cloud inference failed. ${describe(e)}`)
+    } finally {
+      stopper.current = null
     }
+  })
+
+  // "Keep on this device": nothing is sent, and the run's record says so.
+  async function decline(request: Request) {
+    if (!active || run.state !== 'consent') return
+    decide('declined')
+    const message = 'Nothing was sent. The investigation stays on this device.'
+    setRun({ state: 'declined' })
+    const record = await recordOf(active, request, runStart(), { error: message }, null, 'declined')
+    setRun({ state: 'declined', record })
   }
 
   const busy = run.state === 'working'
@@ -782,8 +866,9 @@ function App() {
                         onChange={(e) => {
                           setAllowCloud(e.target.checked)
                           if (!e.target.checked) setWhere('on_device')
-                          // Turning the cloud off withdraws a question already on screen.
-                          if (run.state === 'consent') setRun({ state: 'idle' })
+                          // Turning the cloud off answers a question already on
+                          // screen: declined, and recorded as such.
+                          if (run.state === 'consent') void decline(run.request)
                         }}
                       />
                       Allow the cloud for this case. You are still asked before anything is sent.
@@ -805,7 +890,12 @@ function App() {
                     )}
                   </div>
                   {run.state === 'working' && (
-                    <Working where={run.where} since={run.since} events={active.events.length} />
+                    <Working
+                      where={run.where}
+                      since={run.since}
+                      events={active.events.length}
+                      onStop={() => stopper.current?.abort()}
+                    />
                   )}
                   {run.state === 'consent' && (
                     <div className="consent">
@@ -828,7 +918,7 @@ function App() {
                         >
                           Send {active.events.length} events to the cloud
                         </button>
-                        <button className="secondary" onClick={() => setRun({ state: 'declined' })}>
+                        <button className="secondary" onClick={() => decline(run.request)}>
                           Keep on this device
                         </button>
                       </div>
@@ -838,7 +928,24 @@ function App() {
                     </div>
                   )}
                   {run.state === 'declined' && (
-                    <p className="notice">Nothing was sent. The investigation stays on this device.</p>
+                    <div className="notice">
+                      <p>Nothing was sent. The investigation stays on this device.</p>
+                      {run.record && (
+                        <button className="secondary" onClick={() => download(run.record!)}>
+                          Download the record of this run
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {run.state === 'cancelled' && (
+                    <div className="notice warn">
+                      <p>{run.message}</p>
+                      {run.record && (
+                        <button className="secondary" onClick={() => download(run.record!)}>
+                          Download the record of this run
+                        </button>
+                      )}
+                    </div>
                   )}
                   {run.state === 'failed' && (
                     <div className="notice fail">
@@ -935,7 +1042,17 @@ function App() {
 // A run in progress. The SDK reports no progress of its own, so the page
 // shows only what it knows: the stage, the time elapsed and what to expect.
 // The start time lives in the run, so the clock survives a change of tab.
-function Working({ where, since, events }: { where: 'device' | 'cloud'; since: number; events: number }) {
+function Working({
+  where,
+  since,
+  events,
+  onStop,
+}: {
+  where: 'device' | 'cloud'
+  since: number
+  events: number
+  onStop: () => void
+}) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -968,11 +1085,19 @@ function Working({ where, since, events }: { where: 'device' | 'cloud'; since: n
       </ol>
       <p className="hint">
         {device
-          ? 'Nothing leaves this computer. On a laptop this often takes a minute or more; you can read the evidence meanwhile.'
-          : `You consented to send these ${events} events; the answer comes back to this page.`}
-        {device && seconds >= 120 &&
-          ' Still working: Gemini Nano runs on this computer’s own hardware, and slower machines can take several minutes.'}
+          ? `Nothing leaves this computer. On a laptop this can take a minute or more; you can read the evidence meanwhile. It stops by itself if its answer breaks down, or after ${DEVICE_TIME_LIMIT_MS / 60_000} minutes.`
+          : `You consented to send these ${events} events; the answer comes back to this page. This page stops waiting after ${CLOUD_TIME_LIMIT_MS / 1000} seconds.`}
       </p>
+      <div className="actions">
+        <button className="secondary" onClick={onStop}>
+          Stop
+        </button>
+        <span className="hint">
+          {device
+            ? 'Stops Gemini Nano on this computer. Nothing is sent.'
+            : 'Stops this page waiting. Google may already have received the request and may still process it.'}
+        </span>
+      </div>
     </div>
   )
 }

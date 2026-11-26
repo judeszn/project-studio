@@ -7,7 +7,7 @@ import { parseAuthLine, readGzipLines, sha256Hasher, sha256OfFile, type AuthReco
 import { runBaseline } from './baseline'
 import { createScan } from './candidates'
 import { AUTH_VOCABULARY, LANL_CITATION, LANL_TIME_NOTE, selectEvents, toEvidence, type CaseFile } from './case'
-import type { RunRecord } from '../../src/lib/record'
+import type { AnyRunRecord } from '../../src/lib/record'
 import { evaluate, labelCase, recordedRun, type CaseTruth } from './evaluate'
 import {
   MATCH_RULES,
@@ -351,7 +351,7 @@ async function evaluateCase(o: Record<string, string | undefined>) {
   const truth = readJson<CaseTruth>(o.truth ?? fail('--truth is required'))
   if (o.record) {
     // A run record saved from the page: checked against the case first.
-    const run = await recordedRun(readJson<RunRecord>(o.record), caseFile, await sha256OfFile(casePath)).catch(
+    const run = await recordedRun(readJson<AnyRunRecord>(o.record), caseFile, await sha256OfFile(casePath)).catch(
       (e: Error) => fail(e.message),
     )
     const { raw, ...where } = run

@@ -275,6 +275,16 @@ export function ReportView({
             </>
           )}
         </dl>
+        {run && (
+          <>
+            <h4>Every step of this run</h4>
+            <ol className="steps-run">
+              {run.steps.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ol>
+          </>
+        )}
       </Sub>
 
       <Sub title="All evidence" status={`${report.evidence.length} events`}>

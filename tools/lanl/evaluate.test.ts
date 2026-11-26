@@ -4,7 +4,7 @@ import { checkProposal, checkSupport } from '../../src/lib/verify'
 import { AUTH_VOCABULARY, LANL_TIME_NOTE, toEvidence, type CaseFile } from './case'
 import { evaluate, labelCase, recordedRun } from './evaluate'
 import { authSystemPrompt, buildPrompt } from '../../src/lib/prompts'
-import { buildRunRecord, type RunFacts } from '../../src/lib/record'
+import { buildRunRecord, type AnyRunRecord, type RunFacts } from '../../src/lib/record'
 import { parseAuthLine } from './auth'
 import { agreement, matchedUser, matches, parseRedteamLine } from './redteam'
 import { authFixture, redteamFixture } from './testing'
@@ -290,6 +290,17 @@ describe('recordedRun: a saved run record, checked against its case', () => {
   it('refuses a failed run: there is nothing to evaluate', async () => {
     const failedRun = await record({ result: { error: 'On-device inference failed.' }, verification: null })
     await expect(recordedRun(failedRun, fixtureCase(), CASE_SHA)).rejects.toThrow(/failed.*On-device inference failed/)
+  })
+
+  // Version 2 records (2026-11-26) keep every version 1 field; the LANL runs
+  // of 12 November are version 1 and must still read exactly as before.
+  it('reads a version 1 record exactly as it reads a version 2 record', async () => {
+    const v2 = await record()
+    const copy: Record<string, unknown> = { ...v2, format: 'project-studio.run-record/1' }
+    delete copy.steps
+    const v1 = copy as unknown as AnyRunRecord
+    expect(v2.format).toBe('project-studio.run-record/2')
+    expect(await recordedRun(v1, fixtureCase(), CASE_SHA)).toEqual(await recordedRun(v2, fixtureCase(), CASE_SHA))
   })
 
   it('refuses a file that is not a run record', async () => {

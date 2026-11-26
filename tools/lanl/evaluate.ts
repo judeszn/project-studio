@@ -1,5 +1,5 @@
 import { authSystemPrompt, buildPrompt } from '../../src/lib/prompts'
-import { RUN_RECORD_FORMAT, sha256Hex, type RunRecord } from '../../src/lib/record'
+import { isRunRecord, sha256Hex, type AnyRunRecord, type RunRecord } from '../../src/lib/record'
 import { LANL_FINDING_TYPES, type Classification, type Confidence } from '../../src/lib/schema'
 import { verifyProposal } from '../../src/lib/verify'
 import { parseAuthLine } from './auth'
@@ -119,12 +119,14 @@ export interface RecordedRun {
   systemPromptSha256: string
 }
 
+// Both record versions are read the same way: version 2 keeps every field
+// version 1 has, with the same meaning (record.ts).
 export async function recordedRun(
-  record: RunRecord,
+  record: AnyRunRecord,
   caseFile: CaseFile,
   caseFileSha256: string,
 ): Promise<RecordedRun> {
-  if (record.format !== RUN_RECORD_FORMAT) throw new Error(`not a run record (format ${String(record.format)})`)
+  if (!isRunRecord(record)) throw new Error(`not a run record (format ${String((record as { format?: unknown }).format)})`)
   if (record.case.sha256 !== caseFileSha256) {
     throw new Error(`the record is of a case file with sha256 ${record.case.sha256}, not ${caseFileSha256}`)
   }

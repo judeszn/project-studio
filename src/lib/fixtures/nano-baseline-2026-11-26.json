@@ -1,0 +1,95 @@
+{
+  "app": "production https://project.phang.store/assets/index-Cdw8QYnr.js",
+  "mode": "Run analysis, On this device (app UI, SDK only_on_device)",
+  "startedAt": "2026-11-26T10:15:58.733Z",
+  "attempts": [
+    {
+      "n": 1,
+      "startedAt": "2026-11-26T10:15:58.733Z",
+      "endedAt": "2026-11-26T10:16:24.147Z",
+      "seconds": 25.4,
+      "outcome": "completed",
+      "verdicts": "0 of 8 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"An authentication to a computer that was denied\",\n      \"event_ids\": [\n        \"E06\",\n      \"explanation\",\"Event E06 shows a network logon attempt to FILESRV1 from BKPSRV1 was denied due to an account restriction.\\\",\"\n      ,\"classification_confidenceScore_Low,\"\n      \n\n    ]},\n    {\n      \"type\": \"denied_logon\",\n      \n      \"claim\": \"An authentication to a computer that was denied\",\n      \"event_ids\": [\n        \"E07\",\n      \"explanation\"\n      ,\"\"\n      ,\"_confidence_confidenceLow\"\n\n    ]},    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"An authentication to a computer that was denied\",\n      \"event_ids\": [\n        \"E08\",\n      \"explanation\"\n      ,\"      confidenceLow\"\n\n    ]},    {\n                      \"type\": \"logon\",\n      \n      \"claim\": \"an account successfully authenticated to a computer\",\n      \"event_ids\": [\n      \"E01\",\n      \"explanation\"\n      ,\"_confidence=\"\n    ]},    \n    {\n      \"type\": \"logon\",\n      \"claim\": \"an account successfully authenticated to a computer\",\n      \"event_ids\": [\n      \"E03\",\n      \"explanation\"\n      ,\"confidence\"\n    ]},    {\n          \"type\": \"logon\",\n      \"claim\": \"an account successfully authenticated to a computer\",      \"event_ids\": [      \"E04\",      \"Explanation\"\n      ,\"confidence\"\n    ]},    {\n      \"type\": \"logon\",      \"claim\": \"an account successfully authenticated to a computer\",\n      \"event_ids\": [\n      \"E10\"\n      ,\"explanation\"\n      ,\"confidence\"\n    ]},    {\n      \"type\": \"logon\",\n      \"claim\": \"an account successfully authenticated to a computer\",      \"event_ids\": [\n        \"E11\"\n      ,\"explanation\"\n      ,\"confidence\"    ]}\n    ]\n  ,\"explanation\": \"The events primarily document successful logons and service starts, with a few failed network logon attempts. There is no direct evidence to suggest credential compromise, phishing, malware, or data activity exfiltration.\", \"classification\": \"Undetermined\", \"confidence\": \"Low\", \"recommended_actions\": [\n      \"Review network access logs for the denied network logon attempts from WKS318\",\n      \"Investigate the reason for the 'bad password' failures in network logon attempts to FINSRV1\",\n      \"Review administrative account activity for potential insider threats\",\n      \"Establish stronger password policies for services\"\n    ]\n  }"
+    },
+    {
+      "n": 2,
+      "startedAt": "2026-11-26T10:16:27.144Z",
+      "endedAt": "2026-11-26T10:16:48.146Z",
+      "seconds": 21,
+      "outcome": "completed",
+      "verdicts": "1 of 7 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Failed network logon to FINSRV1 from WKS3102. Failure: bad password.\",\n      \"event_ids\": [\n        \"E06\",\n        \"E07\",\n        \"E08\"\n      ]\n    },\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Failed network logon to FINSRV1 from WKS318, authentication NTLM: bad password.\",\n      \"event_ids\": [\n        \"E06\",        \"      \"\n        ]\n      },\n    {\n      \"type\": \"denied_logon\" ,      \"claim\": \"Network logon to FINSRV1 from WKS318, 10.20.4.77 from 9.120.773\",      \"event_ids\": [\n        \"E7\",       \"E08\"\n      ]}\n    ,\n    {\n      \"type\": \"denied_logon\"      , \"claim\": \"Network logon to FILESRV1 from BKPSRV1, authentication NTLM: restriction\",      \"event_ids\": [\n        \"E6\"     ]\n      }\n    ,\n    {\n      \"type\": \"denied_logon\"      , \"claim\": \"Interactive logon at WKS107.\",      \"event_ids\": [\"E13\"]\n    },\n    {\n      \"type\": \"logon\"      , \"claim\": \"Remote desktop logon to FINSRV1 from WKS101.\",      \"event_ids\": [\"14\"]\n    },\n    {\n      \"type\": \"logon\"      , \"claim\": \"network logon to FINSRV1 from WKS318, 10.20.4.77 from9. Success.\",      \"event_ids\": [\"E10\"]\n    }\n  ],\n  \"explanation\": \"Several failed network logon attempts to FINSRV1 from WKS318/10.4.77 were blocked due to bad passwords, indicating potential brute-force or credential-stuffing attempts against service accounts.\",\n  \"classification\": \"Credential Compromise\",\n  \"confidence\": \"High\",\n  \"recommended_actions\": [\n    \"Review password policies for accounts associated with FINSRV1 to ensure strong complexity and monitor for repeated failed attempts.\",\n  \"      ]    }  } =================================================================================== JSON OUTPUT ====================================================================================================>?d10%                                                                  010ms{ \"\n  \n  \n  \n  \n  \n  \n  \n  \n  \n]\n}"
+    },
+    {
+      "n": 3,
+      "startedAt": "2026-11-26T10:16:50.147Z",
+      "endedAt": "2026-11-26T10:21:02.144Z",
+      "seconds": 252,
+      "outcome": "failed",
+      "error": "QuotaExceededError: The response exceeded output limits and was truncated."
+    },
+    {
+      "n": 4,
+      "startedAt": "2026-11-26T10:21:38.142Z",
+      "endedAt": "2026-11-26T10:21:49.651Z",
+      "seconds": 11.5,
+      "outcome": "completed",
+      "verdicts": "1 of 2 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Failed network logon\",\n      \"event_ids\": [ \"E06\", \"E7\", \"E8\", \"E9\"\n      ]\n    },\n      {\n        \"type\": \"logon\",\n        \"claim\": \"network logon\",      \"event_ids\": [ \"E10\" ]\n      }\n      ]\n    ,\n  \"explanation\": \"Multiple failed network logon attempts were observed for fin-clerk-04 against FINSRV on 09.14 of the 202 events. One subsequent successful network logon was observed for fin-clerk-04 at 09:1440. This pattern suggests repeated failed credential attempts followed by a success, which needs further investigation.\",\n  \"classification\": \"Credential Compromise\",\n  \"confidence\": \"High\",\n  \"recommended_actions\": [\n    \"Review network authentication logs for fin-clerk-04 activity on FINSRV.\",\n    \"Monitor failed logon attempts against FINSRV.S for finclerk-04 to detect potential brute-force or manual attack.\",\n  \"Implement stronger password policies or multi-factor authentication for network access to FINSRV.S.\"\n  ]\n}"
+    },
+    {
+      "n": 5,
+      "startedAt": "2026-11-26T10:21:51.652Z",
+      "endedAt": "2026-11-26T10:22:05.147Z",
+      "seconds": 13.5,
+      "outcome": "completed",
+      "verdicts": "2 of 3 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Account login attempt was denied due to bad password.\",\n      \"event_ids\": [\n        \"E06\",\n        \"E09\",\n        \"E08\"\n      ]\n    },\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Multiple network logon attempts failed with 'bad password' errors.\",\n      \"event_ids\": [\n        \"E06\",\n        \"E07\",\n        \"E8\",\n      \"E9\"\n      ]\n    },\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"A network logon attempt to FINSRV1 was explicitly denied.\",\n      \"event_ids\": [\n        \"E06\"\n      ]\n      }\n      ],\n  \"explanation\": \"The events E06, E08, E09, E07, and E09 show multiple failed network logon attempts to a server FINSRV1 from a workstation WKS318, indicating potential brute-force attacks or repeated incorrect credentials.\",\n  \"classification\": \"Credential Compromise\",\n  \"confidence\": \"High\",\n  \"recommended_actions\": [\n    \"Implement multi-factor authentication (MFA) for all network access to critical systems.\",\n    \"Review and enforce strong password policies for all accounts, especially those accessing shared network resources.\",\n    \"Monitor logs for further failed logon attempts targeting FINSRV1 from WKS318 with aggressive rate-limiting.\",\n  \"optional\"\n  ]\n}"
+    },
+    {
+      "n": 6,
+      "startedAt": "2026-11-26T10:22:08.140Z",
+      "endedAt": "2026-11-26T10:22:20.142Z",
+      "seconds": 12,
+      "outcome": "completed",
+      "verdicts": "0 of 2 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Network logon to FINSRV1 from WKS3181, 1020:4:777 failure: bad password.\",\n      \"event_ids\": [\n        \"E06\",\n        \"E7\",\n        \"E8\"\n      ]\n    },\n      {\n      \"type\": \"denied_logon\",\n      \"claim\": \"Network logon attempt to FINSRV1 resulted in a 'Failure: bad password' on multiple attempts.\",\n      \"event_ids\": [ \"E6\", \"E7\", \"E8\", \"E9\" ]\n    }\n  ],\n  \"explanation\": \"Several failed network logon attempts were recorded for the fin-clerk-04 account targeting FINSRV1, indicating attempts to use incorrect credentials. This pattern suggests potential credential stuffing or brute-force activity against the service. The repeated failures are a strong indicator of compromised account credentials being tested.\",\n  \"classification\": \"Phishing\",\n  \"confidence\": \"High\",\n  \"recommended_actions\": [\n    \"Implement multi-factor authentication (MFA) for all network access.\",\n  \n    \"Review and strengthen password policy for the fin-clerk-04 account.\",  \n  \" proposals\"\n  ]\n}"
+    },
+    {
+      "n": 7,
+      "startedAt": "2026-11-26T10:22:22.143Z",
+      "endedAt": "2026-11-26T10:22:42.144Z",
+      "seconds": 20,
+      "outcome": "completed",
+      "verdicts": "1 of 7 verified",
+      "raw": "{\n  \"findings\": [\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \"A network logon to FINSRV1 from WKS318, 10.20.77. Failure: bad password.\",\n      \"event_ids\": [\n        \"E06\",\n      \"  ]},   \"\n    , \"denied_logon\",\n      \"explanation_enr\"  ]\n    },\n    {\n      \"type\": \"denied_logon\",\n      \"claim\": \" network logon to FINSRV1 from WKS318,10.0.7.7 Failure: bad password.\",\n      \n      \"event_ids\": [\n        \"E7\"\n      ]},   \n        {\"type\":\"denied_logon\",\n      \"claim\": \"network logon to FINSRV1 from WKS318,0.01.3.7 Failure: bad password.\",\n      \"event_ids\": [\n        \"E8\"\n      ]},   \n      {\"type\": \"denied_logon\",\n      \"claim\": \"network logon to FINSRV1 from WKS318,100.20.4.7.77 Failure: bad password.\",\n      \"event_ids\": [\n        \"E7\"\n      ]},\n        {\n      \"type\": \"logon\",\n      \"claim\": \"interactive logon at WKS107.success\",\n      \"event_ids\": [\n        \"E13\"\n      ]},\n    {\n      \"type\": \"logon\",\n      \"claim\": \"interactive logon at WKS204success\",\n      \"event_ids\": [\n        \"E4\"\n      ]},\n    {\n      \"type\": \"logon\",\n      \"claim\": \"network logon to FINSRV1 from WKS3108,0.0.4.7. Failure: bad password.\",\n      \"event_ids\": [\n        \"E10\"\n        ]\n      }\n  ],\n  \"explanation\": \"The events indicate repeated failed attempts to log on to the file share (FINSRV1) with incorrect passwords (E6, E7, E8, E9), suggesting brute-force or credential stuffing activity. There are also successful logons and service access events which are routine.\",\n  \"classification\": \"Credential Compromise\",\n  \"confidence\": \"High\",\n  \"recommended_actions\": [\n    \"Review password policies for accounts associated with FINSRV1 access.\",\n  \n  \"Lock down FINSRV1 access rules, requiring stronger authentication methods.\"\n  ]\n}"
+    },
+    {
+      "n": 8,
+      "startedAt": "2026-11-26T10:22:45.140Z",
+      "endedAt": "2026-11-26T10:27:02.141Z",
+      "seconds": 257,
+      "outcome": "failed",
+      "error": "QuotaExceededError: The response exceeded output limits and was truncated."
+    },
+    {
+      "n": 9,
+      "startedAt": "2026-11-26T10:27:09.639Z",
+      "endedAt": "2026-11-26T10:31:02.088Z",
+      "seconds": 232.4,
+      "outcome": "failed",
+      "error": "QuotaExceededError: The response exceeded output limits and was truncated."
+    },
+    {
+      "n": 10,
+      "startedAt": "2026-11-26T10:31:09.085Z",
+      "endedAt": "2026-11-26T10:34:56.521Z",
+      "seconds": 227.4,
+      "outcome": "failed",
+      "error": "QuotaExceededError: The response exceeded output limits and was truncated."
+    }
+  ],
+  "done": true,
+  "endedAt": "2026-11-26T10:34:58.825Z"
+}

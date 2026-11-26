@@ -1,7 +1,8 @@
 import { ATTACK_NOTICE, ATTACK_REFERENCES, attackUrl } from './attack'
 import type { AttackReference } from './attack'
 import type { Provenance } from './casefile'
-import type { RunRecord } from './record'
+import { STOP_EXPLANATION } from './attempts'
+import { stepsOf, type RecordedStep, type RunRecord } from './record'
 import type { FindingType, LogEvent } from './schema'
 import { verifyProposal } from './verify'
 import type { FindingSupport, Problem, Verification } from './verify'
@@ -151,6 +152,7 @@ export interface Report {
     onlineAtEnd: boolean
     systemSha256: string
     userSha256: string
+    steps: string[] // every attempt and consent decision, in order, in words
   }
   where: string
   parsed: boolean
@@ -169,6 +171,29 @@ export interface Report {
   uncited: ReportEvent[] // events no finding cites; all of them if the output did not parse
   evidence: ReportEvent[] // every event, in evidence order
   raw: string
+}
+
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
+
+// One step of a run, in words: what was tried or asked, and what happened.
+export function stepSummary(step: RecordedStep): string {
+  if (step.kind === 'consent') {
+    const asked = `Asked whether to send the evidence to the cloud (${step.detail})`
+    if (step.decision === null) return `${asked}: no answer.`
+    return `${asked}: ${step.decision === 'granted' ? 'sent with consent' : 'declined; nothing was sent'} at ${step.decidedAt}.`
+  }
+  const place = step.where === 'device' ? 'On this device' : 'In the cloud, after consent'
+  const how = `${place} (${step.sdkMode}${step.streamed ? ', streamed' : ''}), started ${step.startedAt}`
+  const received = `${step.outputChars.toLocaleString('en')} characters received`
+  if (step.outcome === 'completed') return `${how}: completed in ${seconds(step.durationMs)}; ${received}.`
+  if (step.outcome === 'stopped' && step.stopReason) {
+    const remote =
+      step.remoteProcessing === 'unknown'
+        ? ' This page stopped waiting; whether Google stopped processing is unknown.'
+        : ''
+    return `${how}: stopped after ${seconds(step.durationMs)} because ${STOP_EXPLANATION[step.stopReason]}; ${received}.${remote}`
+  }
+  return `${how}: failed after ${seconds(step.durationMs)}: ${step.error}; ${received}.`
 }
 
 // Where the answer came from, in the words the page uses.
@@ -226,6 +251,7 @@ export function buildReport(
       onlineAtEnd: execution.onlineAtEnd,
       systemSha256: prompt.systemSha256,
       userSha256: prompt.userSha256,
+      steps: stepsOf(record).map(stepSummary),
     },
     where: whereItRan(record),
   }
@@ -502,6 +528,7 @@ export function reportHtml(report: Report, generatedAt: string): string {
         : '') +
       (run ? runRows(run) : exampleRows()) +
       `</table>`,
+    ...(run ? [`<h3>Every step of this run</h3>`, `<ol>${run.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>`] : []),
 
     `<h2>All evidence</h2>`,
     `<p class="muted">${esc(w.evidence)}</p>`,
