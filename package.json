@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "lanl": "vite-node tools/lanl/cli.ts --"
+    "lanl": "vite-node tools/lanl/cli.ts --",
+    "scan:build": "vite-node tools/build-scan/cli.ts --"
   },
   "dependencies": {
     "firebase": "^13.2.0",

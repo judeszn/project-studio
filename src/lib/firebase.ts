@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { CustomProvider, ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check'
-import { GoogleAIBackend, getAI } from 'firebase/ai'
+import { getAI } from 'firebase/ai'
+import { aiOptions } from './ai-options'
 
 // Read each variable as `import.meta.env.NAME`, never through an alias of
 // `import.meta.env`: aliasing makes Vite inline the whole env object, debug
@@ -66,4 +67,4 @@ function startAppCheck(): AppCheckMode {
 
 export const appCheckMode = startAppCheck()
 
-export const ai = getAI(app, { backend: new GoogleAIBackend() })
+export const ai = getAI(app, aiOptions(import.meta.env.VITE_APPCHECK_LIMITED_USE))
