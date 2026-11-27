@@ -25,7 +25,7 @@ export const OUTPUT_CHAR_LIMIT = 8_000
 // The slowest completed on-device run recorded is 96.4 s (2026-11-23).
 export const DEVICE_TIME_LIMIT_MS = 120_000
 
-// The slowest completed cloud run recorded is 23.0 s (2026-11-26). The SDK's
+// Recorded cloud runs took 3.3 to 3.5 s (2026-11-23, 2026-11-27); the SDK's
 // own default is 180 s.
 export const CLOUD_TIME_LIMIT_MS = 90_000
 

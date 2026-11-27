@@ -59,8 +59,20 @@ All inference goes through Firebase AI Logic (`firebase` 13.2.0,
 - **After consent** the app uses `PREFER_ON_DEVICE` when Nano is unavailable,
   or `PREFER_IN_CLOUD` when Nano failed or the analyst chose the cloud.
 - Every result records the mode and the SDK's `inferenceSource`, and the page
-  and report say where the model ran.
+  and report say where the model ran, including when a consented cloud call
+  failed and the SDK used Gemini Nano instead.
 - **App Check** with reCAPTCHA Enterprise protects the cloud path.
+
+### Bounded execution
+
+Gemini Nano's answer sometimes breaks down into an endless run of whitespace
+until Chrome's output limit ends it with an error, minutes later.
+`src/lib/attempts.ts` streams each on-device attempt and stops it when its
+output ends in more than 200 whitespace characters, passes 8,000
+characters, or reaches 120 s. The stop tells Chrome to stop generating, not
+only the page to stop waiting. The analyst can stop any run with **Stop**.
+Nothing is retried: a stopped attempt is recorded as stopped, and the cloud
+is offered only with consent.
 
 ### Deterministic verification
 
@@ -86,10 +98,12 @@ are shown as its proposal.
 ### Reports and run records
 
 The HTML report opens without a network and prints to PDF. It names the run
-it belongs to: the model, where it ran and when it started. The JSON run
-record holds the case hash, the prompts with their SHA-256 hashes, the raw
-model output, where the model ran and every check, so the verification can be
-re-run from the record.
+it belongs to: the model, where it ran and when it started, and lists every
+step of the run. The JSON run record (version 2) holds the case hash, the
+prompts with their SHA-256 hashes, every attempt with its exact output, its
+SHA-256 and where it ran, every consent decision, and every check, so the
+verification can be re-run from the record. Declined, stopped and failed
+runs get a record too. The evaluation tools still read version 1 records.
 
 ## Results
 
@@ -102,7 +116,7 @@ re-run from the record.
   all Verified, in 3.5 s. Gemini Nano, on the device, returned 8: 1 Verified;
   2 Rejected, because they named a time or an account their cited events do
   not contain; 5 Unchecked, typed `other`, which no rule covers.
-- **327 automated tests**, including the consent rules: nothing reaches the
+- **367 automated tests**, including the consent rules: nothing reaches the
   cloud before consent, and each send asks again.
 
 ### Evaluation on public data
@@ -125,12 +139,20 @@ in this repository or was sent to the cloud.
 ## Known limits
 
 - Gemini Nano has been tested on one machine: an Apple M1 Mac (16 GB, macOS
-  15.7.1) in desktop Chrome 156 and 157. Other hardware, operating systems
+  15.7.1) in desktop Chrome 156 to 158. Other hardware, operating systems
   and Chrome versions have not been tested, and Nano's availability depends
   on the device.
+- Chrome chooses the on-device model; neither the app nor Firebase AI Logic
+  can select or read its version. The tests ran on Chrome's Gemini Nano
+  component reported as v3Nano.
+- Gemini Nano's answers vary from run to run, and some runs break down and
+  give no answer; those are stopped and recorded.
 - Text inside event fields reaches the model as evidence, so a crafted field
   could steer what the model proposes. Resistance to prompt injection has not
   been tested.
+- If App Check refuses a token, the Firebase SDK stops requesting tokens in
+  that tab for a day. A consented cloud call then fails, the SDK uses Gemini
+  Nano, and the page says so. Reloading the page clears it.
 
 ## Run it locally
 
@@ -156,12 +178,20 @@ Logic (Gemini Developer API). `.env.example` lists every variable:
 **Checks:**
 
 ```bash
-npm test        # 327 tests
+npm test             # 367 tests
 npm run lint
-npm run build   # type check and production build
+npm run build        # type check and production build
+npm run scan:build   # fails if a debug token or secret is in dist/
 ```
 
+GitHub Actions runs the same checks on every push, with an audit of the
+shipped dependencies.
+
 **Deploy:** `npx firebase-tools deploy --only hosting --project <your-project>`.
+The deploy builds and scans first, and Firebase Hosting serves the security
+headers in `firebase.json`: a Content Security Policy that allows only this
+site, Firebase AI Logic, App Check and reCAPTCHA; framing refused; and
+`nosniff`, `Referrer-Policy`, `Permissions-Policy` and COOP.
 
 Case-file format: `docs/CASE_FILE.md`.
 
@@ -180,14 +210,16 @@ Two commits predate it:
 Everything else was built during the submission period: consent-gated hybrid
 routing, the case-file loader and run records, the LANL tooling and
 evaluation, the four-verdict report and export, the sample case and worked
-example, App Check with reCAPTCHA Enterprise, and the AEMAS interface. The
-commit history records what was done when.
+example, App Check with reCAPTCHA Enterprise, the AEMAS interface, security
+headers and CI, and bounded execution with full run records. The commit
+history records what was done when.
 
 ## Repository
 
 | Path | What |
 | --- | --- |
 | `src/lib/hybrid.ts` | Firebase AI Logic models, consent-gated routing |
+| `src/lib/attempts.ts` | Bounded execution: limits, stops, run steps |
 | `src/lib/firebase.ts` | Firebase app and App Check |
 | `src/lib/verify.ts` | Deterministic verification |
 | `src/lib/casefile.ts` | Case-file loader |
@@ -195,6 +227,8 @@ commit history records what was done when.
 | `src/App.tsx` | Pages, investigation steps, runs and consent |
 | `src/data/` | Sample case, worked example, GS-03 fixture |
 | `tools/lanl/` | LANL case building and evaluation (reads a local copy) |
+| `tools/build-scan/`, `tools/hosting/` | Build scan; tests that pin the hosting headers |
+| `.github/workflows/ci.yml` | CI: tests, lint, build, scan, dependency audit |
 | `docs/` | Case-file format; LANL case selector |
 
 ## Data and privacy
